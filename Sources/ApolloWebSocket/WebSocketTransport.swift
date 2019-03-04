@@ -52,6 +52,12 @@ public class WebSocketTransport {
   fileprivate var sequenceNumber = 0
   fileprivate var reconnected = false
 
+  public var security: SSLTrustValidator? {
+    didSet {
+      websocket.security = security
+    }
+  }
+
   public init(request: URLRequest, sendOperationIdentifiers: Bool = false, reconnectionInterval: TimeInterval = 0.5, connectingPayload: GraphQLMap? = [:]) {
     self.connectingPayload = connectingPayload
     self.sendOperationIdentifiers = sendOperationIdentifiers
