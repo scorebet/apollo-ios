@@ -33,7 +33,7 @@ public class WebSocketTransport {
   public weak var delegate: WebSocketTransportDelegate?
   
   var reconnect = false
-  var websocket: ApolloWebSocketClient
+  public private(set) var websocket: ApolloWebSocketClient
   var error: Error? = nil
   let serializationFormat = JSONSerializationFormat.self
   
