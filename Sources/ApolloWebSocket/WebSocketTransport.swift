@@ -31,6 +31,7 @@ public class WebSocketTransport {
   let websocket: WebSocketClient
   let store: ApolloStore?
   let error: Atomic<Error?> = Atomic(nil)
+
   let serializationFormat = JSONSerializationFormat.self
   private let requestBodyCreator: RequestBodyCreator
   
