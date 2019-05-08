@@ -39,7 +39,7 @@ public class WebSocketTransport: NetworkTransport, WebSocketDelegate {
   private var acked = false
   
   private var queue: [Int: String] = [:]
-  private var connectingPayload: GraphQLMap?
+  public var connectingPayload: GraphQLMap?
 
   private var subscribers = [String: (JSONObject?, Error?) -> Void]()
   private var subscriptions : [String: String] = [:]
