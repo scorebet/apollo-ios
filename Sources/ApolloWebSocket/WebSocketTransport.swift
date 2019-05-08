@@ -42,9 +42,11 @@ public class WebSocketTransport {
   private var acked = false
   
   private var queue: [Int: String] = [:]
-  private var connectingPayload: GraphQLMap?
+
+  public var connectingPayload: GraphQLMap?
   
   private var subscribers = [String: (Result<JSONObject, Error>) -> Void]()
+
   private var subscriptions : [String: String] = [:]
   
   private let sendOperationIdentifiers: Bool
