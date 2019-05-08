@@ -53,6 +53,7 @@ public class WebSocketTransport {
   private var connectingPayload: GraphQLMap?
 
   private var subscribers = [String: (Result<JSONObject, Error>) -> Void]()
+
   private var subscriptions : [String: String] = [:]
   private let processingQueue = DispatchQueue(label: "com.apollographql.WebSocketTransport")
 
