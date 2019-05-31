@@ -52,7 +52,7 @@ public class WebSocketTransport {
   private var subscriptions : [String: String] = [:]
   
   private let sendOperationIdentifiers: Bool
-  private let reconnectionInterval: TimeInterval
+  public var reconnectionInterval: TimeInterval?
   fileprivate var sequenceNumber = 0
   fileprivate var reconnected = false
 
@@ -62,7 +62,7 @@ public class WebSocketTransport {
     }
   }
 
-  public init(request: URLRequest, sendOperationIdentifiers: Bool = false, reconnectionInterval: TimeInterval = 0.5, connectingPayload: GraphQLMap? = [:]) {
+  public init(request: URLRequest, sendOperationIdentifiers: Bool = false, reconnectionInterval: TimeInterval? = 0.5, connectingPayload: GraphQLMap? = [:]) {
     self.connectingPayload = connectingPayload
     self.sendOperationIdentifiers = sendOperationIdentifiers
     self.reconnectionInterval = reconnectionInterval
@@ -165,7 +165,7 @@ public class WebSocketTransport {
   private func processMessage(socket: WebSocketClient, data: Data) {
     print("WebSocketTransport::unprocessed event \(data)")
   }
-  
+
   public func initServer(reconnect: Bool = true) {
     self.reconnect = reconnect
     self.acked = false
@@ -386,7 +386,7 @@ extension WebSocketTransport: WebSocketDelegate {
     self.delegate?.webSocketTransport(self, didDisconnectWithError: self.error)
     acked = false // need new connect and ack before sending
     
-    if reconnect {
+    if reconnect, let reconnectionInterval = reconnectionInterval {
       DispatchQueue.main.asyncAfter(deadline: .now() + reconnectionInterval) {
         self.websocket.connect()
       }
