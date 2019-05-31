@@ -19,12 +19,14 @@ public protocol WebSocketTransportDelegate: class {
   func webSocketTransportDidConnect(_ webSocketTransport: WebSocketTransport)
   func webSocketTransportDidReconnect(_ webSocketTransport: WebSocketTransport)
   func webSocketTransport(_ webSocketTransport: WebSocketTransport, didDisconnectWithError error:Error?)
+  func webSocketTransport(_ webSocketTransport: WebSocketTransport, didReceiveMessage message: (payload: JSONObject?, error: Error?))
 }
 
 public extension WebSocketTransportDelegate {
   func webSocketTransportDidConnect(_ webSocketTransport: WebSocketTransport) {}
   func webSocketTransportDidReconnect(_ webSocketTransport: WebSocketTransport) {}
   func webSocketTransport(_ webSocketTransport: WebSocketTransport, didDisconnectWithError error:Error?) {}
+  func webSocketTransport(_ webSocketTransport: WebSocketTransport, didReceiveMessage message: (payload: JSONObject?, error: Error?)) {}
 }
 
 /// A network transport that uses web sockets requests to send GraphQL subscription operations to a server, and that uses the Starscream implementation of web sockets.
@@ -137,6 +139,8 @@ public class WebSocketTransport {
       case .connectionInit, .connectionTerminate, .start, .stop, .connectionError:
         notifyErrorAllHandlers(WebSocketError(payload: payload, error: error, kind: .unprocessedMessage(text)))
       }
+
+      delegate?.webSocketTransport(self, didReceiveMessage: (payload: payload, error: error))
     }
   }
   
