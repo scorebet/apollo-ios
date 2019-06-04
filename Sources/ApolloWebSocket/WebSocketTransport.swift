@@ -16,12 +16,14 @@ public protocol WebSocketTransportDelegate: class {
     func webSocketTransportDidConnect(_ webSocketTransport: WebSocketTransport)
     func webSocketTransportDidReconnect(_ webSocketTransport: WebSocketTransport)
     func webSocketTransport(_ webSocketTransport: WebSocketTransport, didDisconnectWithError error:Error?)
+    func webSocketTransport(_ webSocketTransport: WebSocketTransport, didReceiveMessage message: (payload: JSONObject?, error: Error?))
 }
 
 public extension WebSocketTransportDelegate {
     func webSocketTransportDidConnect(_ webSocketTransport: WebSocketTransport) {}
     func webSocketTransportDidReconnect(_ webSocketTransport: WebSocketTransport) {}
     func webSocketTransport(_ webSocketTransport: WebSocketTransport, didDisconnectWithError error:Error?) {}
+    func webSocketTransport(_ webSocketTransport: WebSocketTransport, didReceiveMessage message: (payload: JSONObject?, error: Error?)) {}
 }
 
 /// A network transport that uses web sockets requests to send GraphQL subscription operations to a server, and that uses the Starscream implementation of web sockets.
@@ -45,7 +47,7 @@ public class WebSocketTransport: NetworkTransport, WebSocketDelegate {
   private var subscriptions : [String: String] = [:]
   
   private let sendOperationIdentifiers: Bool
-  private let reconnectionInterval: TimeInterval
+  public var reconnectionInterval: TimeInterval?
   fileprivate var sequenceNumber = 0
   fileprivate var reconnected = false
 
@@ -55,7 +57,7 @@ public class WebSocketTransport: NetworkTransport, WebSocketDelegate {
     }
   }
 
-  public init(request: URLRequest, sendOperationIdentifiers: Bool = false, reconnectionInterval: TimeInterval = 0.5, connectingPayload: GraphQLMap? = [:]) {
+  public init(request: URLRequest, sendOperationIdentifiers: Bool = false, reconnectionInterval: TimeInterval? = 0.5, connectingPayload: GraphQLMap? = [:]) {
     self.connectingPayload = connectingPayload
     self.sendOperationIdentifiers = sendOperationIdentifiers
     self.reconnectionInterval = reconnectionInterval
@@ -132,6 +134,8 @@ public class WebSocketTransport: NetworkTransport, WebSocketDelegate {
       case .connectionInit, .connectionTerminate, .start, .stop, .connectionError:
         notifyErrorAllHandlers(WebSocketError(payload: payload, error: error, kind: .unprocessedMessage(text)))
       }
+
+      delegate?.webSocketTransport(self, didReceiveMessage: (payload: payload, error: error))
     }
   }
   
@@ -188,7 +192,7 @@ public class WebSocketTransport: NetworkTransport, WebSocketDelegate {
     self.delegate?.webSocketTransport(self, didDisconnectWithError: self.error)
     acked = false // need new connect and ack before sending
     
-    if reconnect {
+    if reconnect, let reconnectionInterval = reconnectionInterval {
       DispatchQueue.main.asyncAfter(deadline: .now() + reconnectionInterval) {
         self.websocket.connect();
       }
