@@ -34,7 +34,7 @@ public class ApolloClient {
   public enum ApolloClientError: Error, LocalizedError {
     case noUploadTransport
     
-    public var localizedDescription: String {
+    public var errorDescription: String? {
       switch self {
       case .noUploadTransport:
         return "Attempting to upload using a transport which does not support uploads. This is a developer error."
@@ -118,8 +118,8 @@ extension ApolloClient: ApolloClientProtocol {
     }
   }
   
-  public func clearCache() -> Promise<Void> {
-    return self.store.clearCache()
+  public func clearCache(callbackQueue: DispatchQueue = .main, completion: ((Result<Void, Error>) -> Void)? = nil) {
+    self.store.clearCache(completion: completion)
   }
   
   @discardableResult public func fetch<Query: GraphQLQuery>(query: Query,
