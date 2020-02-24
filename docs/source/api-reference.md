@@ -4,6 +4,7 @@ description: ''
 ---
 
 ## [Apollo.framework](../api/Apollo/README/)
+## [ApolloCodegenLib.framework](../api/ApolloCodegenLib/README)
 ## [ApolloSQLite.framework](../api/ApolloSQLite/README/)
 ## [ApolloWebSocket.framework](../api/ApolloWebSocket/README/)
 
@@ -29,8 +30,20 @@ sourcedocs generate \
     --link-ending "/" \
     -- \
     -scheme Apollo \
-    -workspace Apollo.xcworkspace
+    -project Apollo.xcodeproj
 ```
+
+To generate docs for the `ApolloCodegenLib` project, `cd` into the source root and run: 
+
+```
+sourcedocs generate \
+    --output-folder "docs/source/api/ApolloCodegenLib" \
+    --link-ending "/" \
+    -- \
+    -scheme ApolloCodegenLib \
+    -project Apollo.xcodeproj
+```
+
 
 To generate docs for the `ApolloSQLite` project, `cd` into the source root and run: 
 
@@ -40,7 +53,7 @@ sourcedocs generate \
     --link-ending "/" \
     -- \
     -scheme ApolloSQLite \
-    -workspace Apollo.xcworkspace
+    -project Apollo.xcodeproj
 ```
 
 To generate for docs the `ApolloWebSocket` project, `cd` into the source root and run: 
@@ -51,7 +64,7 @@ sourcedocs generate \
     --link-ending "/" \
     -- \
     -scheme ApolloWebSocket \
-    -workspace Apollo.xcworkspace
+    -project Apollo.xcodeproj
 ```
 
 ## From Source Instructions
@@ -72,5 +85,5 @@ swift run sourcedocs generate \
     --link-ending "/" \
     -- \
     -scheme "ApolloWebSocket" \
-    -workspace "Apollo.xcworkspace"
-```
+    -project "Apollo.xcodeproj"
+``
