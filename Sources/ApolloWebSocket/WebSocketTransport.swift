@@ -30,9 +30,8 @@ public class WebSocketTransport {
 
   let connectOnInit: Bool
   let reconnect: Atomic<Bool>
-  public private(set) var websocket: ApolloWebSocketClient
+  var websocket: ApolloWebSocketClient
   let error: Atomic<Error?> = Atomic(nil)
-
   let serializationFormat = JSONSerializationFormat.self
   private let requestBodyCreator: RequestBodyCreator
 
