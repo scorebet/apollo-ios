@@ -29,8 +29,7 @@ class GraphQLFileTests: XCTestCase {
   }
   
   func testCreatingFileWithKnownGoodURLSucceedsAndCreatesAndCanRecreateInputStream() throws {
-    let knownFileURL = TestFileHelper.testParentFolder()
-                .appendingPathComponent("a.txt")
+    let knownFileURL = TestFileHelper.fileURLForFile(named: "a", extension: "txt")
     
     let file = try GraphQLFile(fieldName: "test",
                                originalName: "test",
@@ -65,7 +64,7 @@ class GraphQLFileTests: XCTestCase {
     inputStream.close()
   }
   
-  func testCreatingFileWithNonEmptyDataSuccedsAndCreatesAndCanRecreateInputStream() throws {
+  func testCreatingFileWithNonEmptyDataSucceedsAndCreatesAndCanRecreateInputStream() throws {
     let data = try XCTUnwrap("A test string".data(using: .utf8))
     XCTAssertFalse(data.isEmpty)
     

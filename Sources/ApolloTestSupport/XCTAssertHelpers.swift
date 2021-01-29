@@ -1,26 +1,7 @@
 import XCTest
 @testable import Apollo
 
-public func XCTAssertEqual<T: Equatable>(_ expression1: @autoclosure () throws -> [T?]?, _ expression2: @autoclosure () throws -> [T?]?, file: StaticString = #file, line: UInt = #line) rethrows {
-  let optionalValue1 = try expression1()
-  let optionalValue2 = try expression2()
-  
-  let message = {
-    "(\"\(String(describing: optionalValue1))\") is not equal to (\"\(String(describing: optionalValue2))\")"
-  }
-  
-  switch (optionalValue1, optionalValue2) {
-  case (.none, .none):
-    break
-  case let (value1?, value2?):
-    // FIXME: This ignores nil values in both lists, which is probably not what you want for true equality checking
-    XCTAssertEqual(value1.compactMap { $0 }, value2.compactMap { $0 }, message(), file: file, line: line)
-  default:
-    XCTFail(message(), file: file, line: line)
-  }
-}
-
-public func XCTAssertEqual<T, U>(_ expression1: @autoclosure () throws -> [T : U]?, _ expression2: @autoclosure () throws -> [T : U]?, file: StaticString = #file, line: UInt = #line) rethrows {
+public func XCTAssertEqual<T, U>(_ expression1: @autoclosure () throws -> [T : U]?, _ expression2: @autoclosure () throws -> [T : U]?, file: StaticString = #filePath, line: UInt = #line) rethrows {
   let optionalValue1 = try expression1()
   let optionalValue2 = try expression2()
   
@@ -38,7 +19,17 @@ public func XCTAssertEqual<T, U>(_ expression1: @autoclosure () throws -> [T : U
   }
 }
 
-public func XCTAssertMatch<Pattern: Matchable>(_ valueExpression: @autoclosure () throws -> Pattern.Base, _ patternExpression: @autoclosure () throws -> Pattern, file: StaticString = #file, line: UInt = #line) rethrows {
+public func XCTAssertEqualUnordered<Element, C1: Collection, C2: Collection>(_ expression1: @autoclosure () throws -> C1, _ expression2: @autoclosure () throws -> C2, file: StaticString = #filePath, line: UInt = #line) rethrows where Element: Hashable, C1.Element == Element, C2.Element == Element {
+  let collection1 = try expression1()
+  let collection2 = try expression2()
+  
+  // Convert to sets to ignore ordering and only check whether all elements are accounted for,
+  // but also check count to detect duplicates.
+  XCTAssertEqual(collection1.count, collection2.count, file: file, line: line)
+  XCTAssertEqual(Set(collection1), Set(collection2), file: file, line: line)
+}
+
+public func XCTAssertMatch<Pattern: Matchable>(_ valueExpression: @autoclosure () throws -> Pattern.Base, _ patternExpression: @autoclosure () throws -> Pattern, file: StaticString = #filePath, line: UInt = #line) rethrows {
   let value = try valueExpression()
   let pattern = try patternExpression()
   
@@ -47,6 +38,61 @@ public func XCTAssertMatch<Pattern: Matchable>(_ valueExpression: @autoclosure (
   }
   
   if case pattern = value { return }
-  
+    
   XCTFail(message(), file: file, line: line)
+}
+
+// We need overloaded versions instead of relying on default arguments
+// due to https://bugs.swift.org/browse/SR-1534
+
+public func XCTAssertSuccessResult<Success>(_ expression: @autoclosure () throws -> Result<Success, Error>, file: StaticString = #file, line: UInt = #line) rethrows {
+  try XCTAssertSuccessResult(expression(), file: file, line: line, {_ in })
+}
+
+public func XCTAssertSuccessResult<Success>(_ expression: @autoclosure () throws -> Result<Success, Error>, file: StaticString = #file, line: UInt = #line, _ successHandler: (_ value: Success) throws -> Void) rethrows {
+  let result = try expression()
+  
+  switch result {
+  case .success(let value):
+    try successHandler(value)
+  case .failure(let error):
+    XCTFail("Expected success, but result was an error: \(String(describing: error))", file: file, line: line)
+  }
+}
+
+public func XCTAssertFailureResult<Success>(_ expression: @autoclosure () throws -> Result<Success, Error>, file: StaticString = #file, line: UInt = #line) rethrows {
+  try XCTAssertFailureResult(expression(), file: file, line: line, {_ in })
+}
+
+public func XCTAssertFailureResult<Success>(_ expression: @autoclosure () throws -> Result<Success, Error>, file: StaticString = #file, line: UInt = #line, _ errorHandler: (_ error: Error) throws -> Void) rethrows {
+  let result = try expression()
+  
+  switch result {
+  case .success(let success):
+    XCTFail("Expected failure, but result was successful: \(String(describing: success))", file: file, line: line)
+  case .failure(let error):
+    try errorHandler(error)
+  }
+}
+
+/// An error which causes the current test to cease executing and fail when it is thrown.
+/// Similar to `XCTSkip`, but without marking the test as skipped.
+public struct XCTFailure: Error, CustomNSError {
+  
+  public init(_ message: @autoclosure () -> String = "", file: StaticString = #filePath, line: UInt = #line) {
+    XCTFail(message(), file: file, line: line)
+  }
+  
+  /// The domain of the error.
+  public static let errorDomain = XCTestErrorDomain
+  
+  /// The error code within the given domain.
+  public let errorCode: Int = 0
+  
+  /// The user-info dictionary.
+  public let errorUserInfo: [String : Any] = [
+    // Make sure the thrown error doesn't show up as a test failure, because we already record
+    // a more detailed failure (with the right source location) ourselves.
+    "XCTestErrorUserInfoKeyShouldIgnore": true
+  ]
 }

@@ -1,5 +1,6 @@
 import XCTest
 @testable import Apollo
+import ApolloCore
 
 class URLSessionClientLiveTests: XCTestCase {
   
@@ -179,7 +180,15 @@ class URLSessionClientLiveTests: XCTestCase {
           XCTAssertFalse(data.isEmpty)
           do {
             let httpBinResponse = try HTTPBinResponse(data: data)
-            XCTAssertEqual(httpBinResponse.url, response.url?.absoluteString)
+            // WORKAROUND: HTTPBin started randomly returning http instead of https
+            // in this field, replace until addressed. Issue: https://github.com/postmanlabs/httpbin/issues/615
+            var responseURLString = httpBinResponse.url
+            if !responseURLString.contains("https") {
+              let droppedHTTP = String(responseURLString.dropFirst(4))
+              responseURLString = "https" + droppedHTTP
+            }
+            
+            XCTAssertEqual(responseURLString, response.url?.absoluteString)
             XCTAssertEqual(httpBinResponse.args?["index"], "\(index)")
           } catch {
             XCTFail("Parsing error: \(error) for url \(response.url!)")
@@ -204,5 +213,32 @@ class URLSessionClientLiveTests: XCTestCase {
     // Using a set to unique, are all task IDs different values?)
     let set = Set(taskIDs.value)
     XCTAssertEqual(set.count, iterations)
+  }
+  
+  func testInvalidatingClientAndThenTryingToSendARequestReturnsAppropriateError() {
+    let client = URLSessionClient()
+    client.invalidate()
+    
+    let expectation = self.expectation(description: "Basic GET request completed")
+    client.sendRequest(self.request(for: .get)) { result in
+      defer {
+        expectation.fulfill()
+      }
+      
+      switch result {
+      case .failure(let error):
+        switch error {
+        case URLSessionClient.URLSessionClientError.sessionInvalidated:
+          // This is what we want
+          break
+        default:
+          XCTFail("Unexpected error: \(error)")
+        }
+      case .success:
+        XCTFail("This should not have succeeded")
+      }
+    }
+    
+    self.wait(for: [expectation], timeout: 10)
   }
 }

@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import Apollo
 
 struct TestFileHelper {
   
@@ -16,5 +17,24 @@ struct TestFileHelper {
     }
     let url = URL(fileURLWithPath: fileAsString)
     return url.deletingLastPathComponent()
+  }
+  
+  static func uploadServerFolder(from file: StaticString = #file) -> URL {
+    self.testParentFolder(for: file)
+      .deletingLastPathComponent() // test root
+      .deletingLastPathComponent() // source root
+      .appendingPathComponent("SimpleUploadServer")
+  }
+  
+  static func uploadsFolder(from file: StaticString = #file) -> URL {
+    self.uploadServerFolder(from: file)
+      .appendingPathComponent("uploads")
+  }
+  
+  static func fileURLForFile(named name: String, extension fileExtension: String) -> URL {
+    return self.testParentFolder()
+        .appendingPathComponent("Resources")
+        .appendingPathComponent(name)
+        .appendingPathExtension(fileExtension)
   }
 }

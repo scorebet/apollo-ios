@@ -9,6 +9,10 @@ public struct RecordSet {
   public mutating func insert(_ record: Record) {
     storage[record.key] = record
   }
+  
+  public mutating func removeRecord(for key: CacheKey) {
+    storage.removeValue(forKey: key)
+  }
 
   public mutating func clear() {
     storage.removeAll()
@@ -28,8 +32,8 @@ public struct RecordSet {
     return storage.isEmpty
   }
 
-  public var keys: [CacheKey] {
-    return Array(storage.keys)
+  public var keys: Set<CacheKey> {
+    return Set(storage.keys)
   }
 
   @discardableResult public mutating func merge(records: RecordSet) -> Set<CacheKey> {
@@ -75,7 +79,7 @@ extension RecordSet: CustomStringConvertible {
 }
 
 extension RecordSet: CustomPlaygroundDisplayConvertible {
-	public var playgroundDescription: Any {
-		 return description
-	}
+  public var playgroundDescription: Any {
+    return description
+  }
 }

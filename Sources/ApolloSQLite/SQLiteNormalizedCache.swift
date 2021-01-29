@@ -31,6 +31,18 @@ public final class SQLiteNormalizedCache {
     try self.createTableIfNeeded()
   }
 
+  ///
+  /// Initializer that takes the Connection to use
+  /// - Parameters:
+  ///   - db: The database Connection to use
+  ///   - shouldVacuumOnClear: If the database should also be `VACCUM`ed on clear to remove all traces of info. Defaults to `false` since this involves a performance hit, but this should be used if you are storing any Personally Identifiable Information in the cache.
+  /// - Throws: Any errors attempting to access the database
+  public init(db: Connection, shouldVacuumOnClear: Bool = false) throws {
+    self.shouldVacuumOnClear = shouldVacuumOnClear
+    self.db = db
+    try self.createTableIfNeeded()
+  }
+
   private func recordCacheKey(forFieldCacheKey fieldCacheKey: CacheKey) -> CacheKey {
     let components = fieldCacheKey.components(separatedBy: ".")
     var updatedComponents = [String]()
@@ -78,7 +90,7 @@ public final class SQLiteNormalizedCache {
     return Set(changedFieldKeys)
   }
 
-  private func selectRecords(forKeys keys: [CacheKey]) throws -> [Record] {
+  private func selectRecords(forKeys keys: Set<CacheKey>) throws -> [Record] {
     let query = self.records.filter(keys.contains(key))
     return try self.db.prepare(query).map { try parse(row: $0) }
   }
@@ -88,6 +100,11 @@ public final class SQLiteNormalizedCache {
     if self.shouldVacuumOnClear {
       try self.db.prepare("VACUUM;").run()
     }
+  }
+  
+  private func removeSQLiteRecord(for cacheKey: CacheKey) throws {
+    let query = self.records.filter(key == cacheKey)
+    try self.db.run(query.delete())
   }
 
   private func parse(row: Row) throws -> Record {
@@ -105,61 +122,21 @@ public final class SQLiteNormalizedCache {
 // MARK: - NormalizedCache conformance
 
 extension SQLiteNormalizedCache: NormalizedCache {
-
-  public func merge(records: RecordSet,
-                    callbackQueue: DispatchQueue?,
-                    completion: @escaping (Swift.Result<Set<CacheKey>, Error>) -> Void) {
-    let result: Swift.Result<Set<CacheKey>, Error>
-    do {
-      let records = try self.mergeRecords(records: records)
-      result = .success(records)
-    } catch {
-      result = .failure(error)
-    }
-
-    DispatchQueue.apollo_returnResultAsyncIfNeeded(on: callbackQueue,
-                                                   action: completion,
-                                                   result: result)
+  public func loadRecords(forKeys keys: Set<CacheKey>) throws -> [CacheKey: Record] {
+    return [CacheKey: Record](uniqueKeysWithValues:
+                                try selectRecords(forKeys: keys)
+                                .map { record in (record.key, record) })
   }
-
-  public func loadRecords(forKeys keys: [CacheKey],
-                          callbackQueue: DispatchQueue?,
-                          completion: @escaping (Swift.Result<[Record?], Error>) -> Void) {
-    let result: Swift.Result<[Record?], Error>
-    do {
-      let records = try self.selectRecords(forKeys: keys)
-      let recordsOrNil: [Record?] = keys.map { key in
-        if let recordIndex = records.firstIndex(where: { $0.key == key }) {
-          return records[recordIndex]
-        }
-        return nil
-      }
-
-      result = .success(recordsOrNil)
-    } catch {
-      result = .failure(error)
-    }
-
-    DispatchQueue.apollo_returnResultAsyncIfNeeded(on: callbackQueue,
-                                                   action: completion,
-                                                   result: result)
+  
+  public func merge(records: RecordSet) throws -> Set<CacheKey> {
+    return try mergeRecords(records: records)
   }
-
-  public func clear(callbackQueue: DispatchQueue?, completion: ((Swift.Result<Void, Error>) -> Void)?) {
-    let result: Swift.Result<Void, Error>
-    do {
-      try clearImmediately()
-      result = .success(())
-    } catch {
-      result = .failure(error)
-    }
-
-    DispatchQueue.apollo_returnResultAsyncIfNeeded(on: callbackQueue,
-                                                   action: completion,
-                                                   result: result)
+  
+  public func removeRecord(for key: CacheKey) throws {
+    try removeSQLiteRecord(for: key)
   }
-
-  public func clearImmediately() throws {
+  
+  public func clear() throws {
     try clearRecords()
   }
 }

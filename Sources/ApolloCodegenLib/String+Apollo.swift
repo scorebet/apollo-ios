@@ -1,10 +1,18 @@
 import Foundation
+#if !COCOAPODS
+import ApolloCore
+#endif
 
-enum ApolloStringError: Error {
+enum ApolloStringError: Error, LocalizedError {
   case expectedSuffixMissing(_ suffix: String)
+  
+  var errorDescription: String? {
+    switch self {
+    case .expectedSuffixMissing(let suffix):
+      return "Expected \"\(self)\" to have suffix \"\(suffix)\", but it did not. Cannot drop a suffix that doesn't exist!"
+    }
+  }
 }
-
-extension String: ApolloCompatible {}
 
 extension ApolloExtension where Base == String {
   
@@ -20,7 +28,7 @@ extension ApolloExtension where Base == String {
   /// Some of these are context-dependent and can be used as identifiers outside of the relevant
   /// context. As we don"t understand context, we will treat them as keywords in all contexts.
   ///
-  /// This list does not include keywords that aren"t identifiers, such as `#available`.
+  /// This list does not include keywords that aren't identifiers, such as `#available`.
   static var reservedKeywords: Set<String> {
     [
       // https://docs.swift.org/swift-book/ReferenceManual/LexicalStructure.html#ID413

@@ -16,6 +16,7 @@ class ASTParsingTests: XCTestCase {
     let starWarsJSONURL = sourceRoot
       .appendingPathComponent("Sources")
       .appendingPathComponent("StarWarsAPI")
+      .appendingPathComponent("graphql")
       .appendingPathComponent("API.json")
     
     return starWarsJSONURL
@@ -31,15 +32,60 @@ class ASTParsingTests: XCTestCase {
   func testLoadingStarWarsJSON() throws {
     do {
       let output = try loadAST(from: starWarsJSONURL)
-      XCTAssertEqual(output.operations.count, 36)
+      XCTAssertEqual(output.operations.count, 38)
       XCTAssertEqual(output.fragments.count, 15)
       XCTAssertEqual(output.typesUsed.count, 3)
+      XCTAssertEqual(output.unionTypes.count, 1)
+      XCTAssertEqual(output.interfaceTypes.count, 1)
     } catch {
       CodegenTestHelper.handleFileLoadError(error)
     }
   }
   
-  func testParsingASTTypes() throws {
+  func testParsingASTUnionTypes() throws {
+    let output: ASTOutput
+    do {
+      output = try loadAST(from: starWarsJSONURL)
+    } catch {
+      CodegenTestHelper.handleFileLoadError(error)
+      return
+    }
+    
+    let types = output.unionTypes
+    XCTAssertEqual(types.count, 1)
+    
+    let type = try XCTUnwrap(types.first)
+    
+    XCTAssertEqual(type.name, "SearchResult")
+    XCTAssertEqual(type.types, [
+      "Human",
+      "Droid",
+      "Starship"
+    ])
+  }
+  
+  func testParsingASTInterfaceTypes() throws {
+    let output: ASTOutput
+    do {
+      output = try loadAST(from: starWarsJSONURL)
+    } catch {
+      CodegenTestHelper.handleFileLoadError(error)
+      return
+    }
+    
+    let types = output.interfaceTypes
+    XCTAssertEqual(types.count, 1)
+    
+    let type = try XCTUnwrap(types.first)
+    
+    XCTAssertEqual(type.name, "Character")
+    XCTAssertEqual(type.types, [
+      "Human",
+      "Droid",
+    ])
+  }
+  
+  func testParsingASTInputTypes() throws {
     let output: ASTOutput
     do {
       output = try loadAST(from: starWarsJSONURL)
@@ -133,9 +179,9 @@ class ASTParsingTests: XCTestCase {
     ])
     
     XCTAssertEqual(colorFields.map { $0.description }, [
-      nil,
-      nil,
-      nil,
+      "",
+      "",
+      "",
     ])
   }
   
@@ -151,7 +197,7 @@ class ASTParsingTests: XCTestCase {
     let createAwesomeReviewMutation = try XCTUnwrap(output.operations.first(where: { $0.operationName == "CreateAwesomeReview" }))
     
     XCTAssertTrue(createAwesomeReviewMutation.filePath.hasPrefix("file:///"))
-    XCTAssertTrue(createAwesomeReviewMutation.filePath.hasSuffix("/Sources/StarWarsAPI/CreateReviewForEpisode.graphql"))
+    XCTAssertTrue(createAwesomeReviewMutation.filePath.hasSuffix("/Sources/StarWarsAPI/graphql/CreateReviewForEpisode.graphql"))
     XCTAssertEqual(createAwesomeReviewMutation.operationType, .mutation)
     XCTAssertEqual(createAwesomeReviewMutation.rootType, "Mutation")
     
@@ -174,7 +220,7 @@ mutation CreateAwesomeReview {\n  createReview(episode: JEDI, review: {stars: 10
     XCTAssertEqual(outerField.responseName, "createReview")
     XCTAssertEqual(outerField.fieldName, "createReview")
     XCTAssertEqual(outerField.typeNode, .named("Review"))
-    XCTAssertFalse(outerField.isDeprecated.apollo_boolValue)
+    XCTAssertFalse(outerField.isDeprecated.apollo.boolValue)
     XCTAssertFalse(outerField.isConditional)
     let fragmentSpreads = try XCTUnwrap(outerField.fragmentSpreads)
     XCTAssertTrue(fragmentSpreads.isEmpty)
@@ -235,7 +281,7 @@ mutation CreateAwesomeReview {\n  createReview(episode: JEDI, review: {stars: 10
     ])
     
     XCTAssertEqual(innerFields.map { $0.isDeprecated }, [
-      nil,
+      false,
       false,
       false,
     ])
@@ -252,7 +298,7 @@ mutation CreateAwesomeReview {\n  createReview(episode: JEDI, review: {stars: 10
     
     let heroAndFriendsNamesQuery = try XCTUnwrap(output.operations.first(where: { $0.operationName == "HeroAndFriendsNames" }))
     XCTAssertTrue(heroAndFriendsNamesQuery.filePath.hasPrefix("file:///"))
-    XCTAssertTrue(heroAndFriendsNamesQuery.filePath.hasSuffix("/Sources/StarWarsAPI/HeroAndFriendsNames.graphql"))
+    XCTAssertTrue(heroAndFriendsNamesQuery.filePath.hasSuffix("/Sources/StarWarsAPI/graphql/HeroAndFriendsNames.graphql"))
     XCTAssertEqual(heroAndFriendsNamesQuery.operationType, .query)
     XCTAssertEqual(heroAndFriendsNamesQuery.rootType, "Query")
     
@@ -333,7 +379,7 @@ query HeroAndFriendsNames($episode: Episode) {\n  hero(episode: $episode) {\n   
     ])
     
     XCTAssertEqual(firstLevelFields.map { $0.isDeprecated }, [
-      nil,
+      false,
       false,
       false
     ])
@@ -384,7 +430,7 @@ query HeroAndFriendsNames($episode: Episode) {\n  hero(episode: $episode) {\n   
     ])
     
     XCTAssertEqual(secondLevelFields.map { $0.isDeprecated }, [
-      nil,
+      false,
       false,
     ])
     
@@ -416,7 +462,7 @@ query HeroAndFriendsNames($episode: Episode) {\n  hero(episode: $episode) {\n   
     let heroAndFriendsNamesWithFragmentQuery = try XCTUnwrap(output.operations.first(where: { $0.operationName == "HeroAndFriendsNamesWithFragment" }))
     
     XCTAssertTrue(heroAndFriendsNamesWithFragmentQuery.filePath.hasPrefix("file:///"))
-    XCTAssertTrue(heroAndFriendsNamesWithFragmentQuery.filePath.hasSuffix("/Sources/StarWarsAPI/HeroAndFriendsNames.graphql"))
+    XCTAssertTrue(heroAndFriendsNamesWithFragmentQuery.filePath.hasSuffix("/Sources/StarWarsAPI/graphql/HeroAndFriendsNames.graphql"))
     XCTAssertEqual(heroAndFriendsNamesWithFragmentQuery.operationType, .query)
     XCTAssertEqual(heroAndFriendsNamesWithFragmentQuery.rootType, "Query")
     
@@ -499,7 +545,7 @@ query HeroAndFriendsNamesWithFragment($episode: Episode) {\n  hero(episode: $epi
     ])
     
     XCTAssertEqual(firstLevelFields.map { $0.isDeprecated }, [
-      nil,
+      false,
       false,
       false,
     ])
@@ -556,7 +602,7 @@ query HeroAndFriendsNamesWithFragment($episode: Episode) {\n  hero(episode: $epi
     ])
     
     XCTAssertEqual(secondLevelFields.map { $0.isDeprecated }, [
-      nil,
+      false,
       false
     ])
     
@@ -593,7 +639,7 @@ query HeroAndFriendsNamesWithFragment($episode: Episode) {\n  hero(episode: $epi
     let heroDetailsQuery = try XCTUnwrap(output.operations.first(where: { $0.operationName == "HeroDetails" }))
   
     XCTAssertTrue(heroDetailsQuery.filePath.hasPrefix("file:///"))
-    XCTAssertTrue(heroDetailsQuery.filePath.hasSuffix("/Sources/StarWarsAPI/HeroDetails.graphql"))
+    XCTAssertTrue(heroDetailsQuery.filePath.hasSuffix("/Sources/StarWarsAPI/graphql/HeroDetails.graphql"))
     XCTAssertEqual(heroDetailsQuery.operationType, .query)
     XCTAssertEqual(heroDetailsQuery.rootType, "Query")
     
@@ -656,7 +702,7 @@ query HeroDetails($episode: Episode) {\n  hero(episode: $episode) {\n    __typen
     ])
     
     XCTAssertEqual(innerFields.map { $0.isDeprecated }, [
-      nil,
+      false,
       false
     ])
     
@@ -708,7 +754,7 @@ query HeroDetails($episode: Episode) {\n  hero(episode: $episode) {\n    __typen
     ])
     
     XCTAssertEqual(humanFields.map { $0.isDeprecated }, [
-      nil,
+      false,
       false,
       false
     ])
@@ -745,7 +791,7 @@ query HeroDetails($episode: Episode) {\n  hero(episode: $episode) {\n    __typen
     ])
     
     XCTAssertEqual(droidFields.map { $0.isDeprecated }, [
-      nil,
+      false,
       false,
       false
     ])
@@ -764,7 +810,7 @@ query HeroDetails($episode: Episode) {\n  hero(episode: $episode) {\n    __typen
     
     XCTAssertTrue(twoHeroesQuery.filePath.hasPrefix("file:///"))
     XCTAssertTrue(twoHeroesQuery.filePath
-      .hasSuffix("/Sources/StarWarsAPI/TwoHeroes.graphql"))
+      .hasSuffix("/Sources/StarWarsAPI/graphql/TwoHeroes.graphql"))
     XCTAssertEqual(twoHeroesQuery.operationType, .query)
     XCTAssertEqual(twoHeroesQuery.rootType, "Query")
     XCTAssertTrue(twoHeroesQuery.variables.isEmpty)
@@ -858,7 +904,7 @@ query TwoHeroes {\n  r2: hero {\n    __typename\n    name\n  }\n  luke: hero(epi
     ])
     
     XCTAssertEqual(r2Fields.map { $0.isDeprecated }, [
-      nil,
+      false,
       false,
     ])
     
@@ -899,7 +945,7 @@ query TwoHeroes {\n  r2: hero {\n    __typename\n    name\n  }\n  luke: hero(epi
     ])
     
     XCTAssertEqual(lukeFields.map { $0.isDeprecated }, [
-      nil,
+      false,
       false,
     ])
     
@@ -932,7 +978,7 @@ query TwoHeroes {\n  r2: hero {\n    __typename\n    name\n  }\n  luke: hero(epi
     
     XCTAssertTrue(heroNameConditionalInclusionQuery.filePath.hasPrefix("file:///"))
     XCTAssertTrue(heroNameConditionalInclusionQuery.filePath
-      .hasSuffix("/Sources/StarWarsAPI/HeroConditional.graphql"))
+      .hasSuffix("/Sources/StarWarsAPI/graphql/HeroConditional.graphql"))
     XCTAssertEqual(heroNameConditionalInclusionQuery.operationType, .query)
     XCTAssertEqual(heroNameConditionalInclusionQuery.rootType, "Query")
     
@@ -995,7 +1041,7 @@ query HeroNameConditionalInclusion($includeName: Boolean!) {\n  hero {\n    __ty
     ])
     
     XCTAssertEqual(innerFields.map { $0.isDeprecated }, [
-      nil,
+      false,
       false
     ])
     
@@ -1024,7 +1070,7 @@ query HeroNameConditionalInclusion($includeName: Boolean!) {\n  hero {\n    __ty
     
     XCTAssertTrue(heroNameConditionalExclusionQuery.filePath.hasPrefix("file:///"))
     XCTAssertTrue(heroNameConditionalExclusionQuery.filePath
-      .hasSuffix("/Sources/StarWarsAPI/HeroConditional.graphql"))
+      .hasSuffix("/Sources/StarWarsAPI/graphql/HeroConditional.graphql"))
     XCTAssertEqual(heroNameConditionalExclusionQuery.operationType, .query)
     XCTAssertEqual(heroNameConditionalExclusionQuery.rootType, "Query")
     
@@ -1086,7 +1132,7 @@ query HeroNameConditionalExclusion($skipName: Boolean!) {\n  hero {\n    __typen
     ])
     
     XCTAssertEqual(innerFields.map { $0.isDeprecated }, [
-      nil,
+      false,
       false
     ])
     
@@ -1115,7 +1161,7 @@ query HeroNameConditionalExclusion($skipName: Boolean!) {\n  hero {\n    __typen
     
     XCTAssertTrue(heroDetailsFragmentConditionalInclusionQuery.filePath.hasPrefix("file:///"))
     XCTAssertTrue(heroDetailsFragmentConditionalInclusionQuery.filePath
-      .hasSuffix("/Sources/StarWarsAPI/HeroConditional.graphql"))
+      .hasSuffix("/Sources/StarWarsAPI/graphql/HeroConditional.graphql"))
     XCTAssertEqual(heroDetailsFragmentConditionalInclusionQuery.operationType, .query)
     XCTAssertEqual(heroDetailsFragmentConditionalInclusionQuery.rootType, "Query")
     
@@ -1182,7 +1228,7 @@ query HeroDetailsFragmentConditionalInclusion($includeDetails: Boolean!) {\n  he
     ])
     
     XCTAssertEqual(innerFields.map { $0.isDeprecated }, [
-      nil,
+      false,
       false
     ])
     
@@ -1249,7 +1295,7 @@ query HeroDetailsFragmentConditionalInclusion($includeDetails: Boolean!) {\n  he
     ])
     
     XCTAssertEqual(humanFields.map { $0.isDeprecated }, [
-      nil,
+      false,
       false,
       false
     ])
@@ -1292,7 +1338,7 @@ query HeroDetailsFragmentConditionalInclusion($includeDetails: Boolean!) {\n  he
     ])
     
     XCTAssertEqual(droidFields.map { $0.isDeprecated }, [
-      nil,
+      false,
       false,
       false
     ])
