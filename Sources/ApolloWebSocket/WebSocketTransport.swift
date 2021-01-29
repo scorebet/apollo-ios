@@ -42,7 +42,7 @@ public class WebSocketTransport {
 
   private var queue: [Int: String] = [:]
 
-  public var connectingPayload: GraphQLMap?
+  private var connectingPayload: GraphQLMap?
   
   private var subscribers = [String: (Result<JSONObject, Error>) -> Void]()
 
@@ -50,7 +50,7 @@ public class WebSocketTransport {
   private let processingQueue = DispatchQueue(label: "com.apollographql.WebSocketTransport")
 
   private let sendOperationIdentifiers: Bool
-  public var reconnectionInterval: TimeInterval?
+  private let reconnectionInterval: TimeInterval
   private let allowSendingDuplicates: Bool
   fileprivate let sequenceNumberCounter = Atomic<Int>(0)
   fileprivate var reconnected = false
@@ -117,7 +117,7 @@ public class WebSocketTransport {
               clientVersion: String = WebSocketTransport.defaultClientVersion,
               sendOperationIdentifiers: Bool = false,
               reconnect: Bool = true,
-              reconnectionInterval: TimeInterval? = 0.5,
+              reconnectionInterval: TimeInterval = 0.5,
               allowSendingDuplicates: Bool = true,
               connectOnInit: Bool = true,
               connectingPayload: GraphQLMap? = [:],
@@ -146,14 +146,6 @@ public class WebSocketTransport {
 
   public func ping(data: Data, completionHandler: (() -> Void)? = nil) {
     return websocket.write(ping: data, completion: completionHandler)
-  }
-
-  public func connect() {
-    websocket.connect()
-  }
-
-  public func disconnect() {
-    websocket.disconnect()
   }
 
   private func processMessage(socket: WebSocketClient, text: String) {
@@ -244,8 +236,7 @@ public class WebSocketTransport {
     print("WebSocketTransport::unprocessed event \(data)")
   }
 
-  public func initServer(reconnect: Bool = true) {
-    self.reconnect.value = reconnect
+  public func initServer() {
     self.acked = false
 
     if let str = OperationMessage(payload: self.connectingPayload, type: .connectionInit).rawMessage {
@@ -446,7 +437,7 @@ extension WebSocketTransport: WebSocketDelegate {
     self.delegate?.webSocketTransport(self, didDisconnectWithError: self.error.value)
     acked = false // need new connect and ack before sending
 
-    if reconnect.value, let reconnectionInterval = reconnectionInterval {
+    if reconnect.value {
       DispatchQueue.main.asyncAfter(deadline: .now() + reconnectionInterval) {
         self.websocket.connect()
       }
