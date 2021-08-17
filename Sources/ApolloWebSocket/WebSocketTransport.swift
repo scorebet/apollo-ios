@@ -53,15 +53,16 @@ public class WebSocketTransport {
   private var acked = false
 
   private var queue: [Int: String] = [:]
-  private var connectingPayload: GraphQLMap?
 
+  public var connectingPayload: GraphQLMap?
+  
   private var subscribers = [String: (Result<JSONObject, Error>) -> Void]()
 
   private var subscriptions : [String: String] = [:]
   private let processingQueue = DispatchQueue(label: "com.apollographql.WebSocketTransport")
 
   private let sendOperationIdentifiers: Bool
-  private let reconnectionInterval: TimeInterval
+  public var reconnectionInterval: TimeInterval?
   private let allowSendingDuplicates: Bool
   fileprivate let sequenceNumberCounter = Atomic<Int>(0)
   fileprivate var reconnected = false
@@ -106,7 +107,7 @@ public class WebSocketTransport {
               clientVersion: String = WebSocketTransport.defaultClientVersion,
               sendOperationIdentifiers: Bool = false,
               reconnect: Bool = true,
-              reconnectionInterval: TimeInterval = 0.5,
+              reconnectionInterval: TimeInterval? = 0.5,
               allowSendingDuplicates: Bool = true,
               connectOnInit: Bool = true,
               connectingPayload: GraphQLMap? = [:],
