@@ -67,8 +67,12 @@ class FoundationStream : NSObject, WebSocketStream, StreamDelegate, SOCKSProxyab
         let proxyDict = CFNetworkCopySystemProxySettings()
         let socksConfig = CFDictionaryCreateMutableCopy(nil, 0, proxyDict!.takeRetainedValue())
         let propertyKey = CFStreamPropertyKey(rawValue: kCFStreamPropertySOCKSProxy)
-        CFWriteStreamSetProperty(outputStream, propertyKey, socksConfig)
-        CFReadStreamSetProperty(inputStream, propertyKey, socksConfig)
+        let dict = socksConfig as? [String: Any]
+        if let ip = dict?["HTTPSProxy"]  as? String, let port = dict?["HTTPSPort"] as? Int {
+          let customSocksConfig = ["SOCKSProxy": ip, "SOCKSPort": port + 1, "SOCKSEnable": 1] as CFDictionary?
+          CFWriteStreamSetProperty(outputStream, propertyKey, customSocksConfig)
+          CFReadStreamSetProperty(inputStream, propertyKey, customSocksConfig)
+        }
       }
       #endif
 
