@@ -355,6 +355,10 @@ public struct ApolloCodegenConfiguration: Codable, Equatable {
     ///  Defaults to `true`.
     public let pruneGeneratedFiles: Bool
 
+    /// Fragment merging strategy determines how selections will be merged into the `SelectionSet` they are spread into.
+    /// Defaults to `mergeAllFragmentSpreads`
+    public let fragmentMergingStrategy: FragmentMergingStrategy
+
     /// Default property values
     public struct Default {
       public static let additionalInflectionRules: [InflectionRule] = []
@@ -366,6 +370,20 @@ public struct ApolloCodegenConfiguration: Codable, Equatable {
       public static let warningsOnDeprecatedUsage: Composition = .include
       public static let conversionStrategies: ConversionStrategies = .init()
       public static let pruneGeneratedFiles: Bool = true
+      public static let fragmentMergingStrategy: FragmentMergingStrategy = .mergeAllFragmentSpreads
+    }
+
+    public enum FragmentMergingStrategy: String, Codable, Equatable {
+      /// The default value.
+      /// Merges selections included from all fragments into the `SelectionSet` they are spread into.
+      case mergeAllFragmentSpreads
+
+      /// Does not merge selections included from **named or inline** fragment spreads
+      /// into the `SelectionSet` they are spread into.
+      /// Does not merges fragment accessors across child inline fragments.
+      ///
+      /// This generates completely flat models that reflect the shape of your operation/fragment definitions directly.
+      case mergeNone
     }
 
     /// Designated initializer.
@@ -395,7 +413,8 @@ public struct ApolloCodegenConfiguration: Codable, Equatable {
       cocoapodsCompatibleImportStatements: Bool = Default.cocoapodsCompatibleImportStatements,
       warningsOnDeprecatedUsage: Composition = Default.warningsOnDeprecatedUsage,
       conversionStrategies: ConversionStrategies = Default.conversionStrategies,
-      pruneGeneratedFiles: Bool = Default.pruneGeneratedFiles
+      pruneGeneratedFiles: Bool = Default.pruneGeneratedFiles,
+      fragmentMergingStrategy: FragmentMergingStrategy = Default.fragmentMergingStrategy
     ) {
       self.additionalInflectionRules = additionalInflectionRules
       self.queryStringLiteralFormat = queryStringLiteralFormat
@@ -406,6 +425,7 @@ public struct ApolloCodegenConfiguration: Codable, Equatable {
       self.warningsOnDeprecatedUsage = warningsOnDeprecatedUsage
       self.conversionStrategies = conversionStrategies
       self.pruneGeneratedFiles = pruneGeneratedFiles
+      self.fragmentMergingStrategy = fragmentMergingStrategy
     }
 
     // MARK: Codable
@@ -420,6 +440,7 @@ public struct ApolloCodegenConfiguration: Codable, Equatable {
       case warningsOnDeprecatedUsage
       case conversionStrategies
       case pruneGeneratedFiles
+      case fragmentMergingStrategy
     }
 
     public init(from decoder: Decoder) throws {
@@ -469,6 +490,11 @@ public struct ApolloCodegenConfiguration: Codable, Equatable {
         Bool.self,
         forKey: .pruneGeneratedFiles
       ) ?? Default.pruneGeneratedFiles
+
+      fragmentMergingStrategy = try values.decodeIfPresent(
+        FragmentMergingStrategy.self,
+        forKey: .fragmentMergingStrategy
+      ) ?? Default.fragmentMergingStrategy
     }
   }
 
