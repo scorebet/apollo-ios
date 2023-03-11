@@ -32,7 +32,8 @@ class SelectionSetTemplateTests: XCTestCase {
     inflectionRules: [ApolloCodegenLib.InflectionRule] = [],
     schemaDocumentation: ApolloCodegenConfiguration.Composition = .exclude,
     warningsOnDeprecatedUsage: ApolloCodegenConfiguration.Composition = .exclude,
-    cocoapodsImportStatements: Bool = false
+    cocoapodsImportStatements: Bool = false,
+    fragmentMergingStrategy: ApolloCodegenConfiguration.OutputOptions.FragmentMergingStrategy = .mergeAllFragmentSpreads
   ) throws {
     ir = try .mock(schema: schemaSDL, document: document)
     let operationDefinition = try XCTUnwrap(ir.compilationResult[operation: operationName])
@@ -44,7 +45,8 @@ class SelectionSetTemplateTests: XCTestCase {
         additionalInflectionRules: inflectionRules,
         schemaDocumentation: schemaDocumentation,
         cocoapodsCompatibleImportStatements: cocoapodsImportStatements,
-        warningsOnDeprecatedUsage: warningsOnDeprecatedUsage
+        warningsOnDeprecatedUsage: warningsOnDeprecatedUsage,
+        fragmentMergingStrategy: fragmentMergingStrategy
       )
     ))
     let mockTemplateRenderer = MockTemplateRenderer(
@@ -1475,6 +1477,123 @@ class SelectionSetTemplateTests: XCTestCase {
 
     // when
     try buildSubjectAndOperation()
+    let allAnimals = try XCTUnwrap(
+      operation[field: "query"]?[field: "allAnimals"] as? IR.EntityField
+    )
+
+    let actual = subject.render(field: allAnimals)
+
+    // then
+    expect(actual).to(equalLineByLine(expected, atLine: 7, ignoringExtraLines: true))
+  }
+
+  func test__render_selections__givenFragmentMergingStrategy_mergeAll_rendersBody() throws {
+    // given
+    schemaSDL = """
+    type Query {
+      allAnimals: [Animal!]
+    }
+
+    type Animal {
+      string: String!
+      int: Int!
+    }
+    """
+
+    document = """
+    query TestOperation {
+      allAnimals {
+        ...IdentityFragment
+        ...NameFragment
+      }
+    }
+
+    fragment IdentityFragment on Animal {
+      int
+    }
+
+    fragment NameFragment on Animal {
+      string
+    }
+    """
+
+    let expected = """
+      public static var __selections: [ApolloAPI.Selection] { [
+        .field("__typename", String.self),
+        .fragment(IdentityFragment.self),
+        .fragment(NameFragment.self),
+      ] }
+
+      public var int: Int { __data["int"] }
+      public var string: String { __data["string"] }
+
+      public struct Fragments: FragmentContainer {
+        public let __data: DataDict
+        public init(_dataDict: DataDict) { __data = _dataDict }
+
+        public var identityFragment: IdentityFragment { _toFragment() }
+        public var nameFragment: NameFragment { _toFragment() }
+    """
+
+    // when
+    try buildSubjectAndOperation()
+    let allAnimals = try XCTUnwrap(
+      operation[field: "query"]?[field: "allAnimals"] as? IR.EntityField
+    )
+
+    let actual = subject.render(field: allAnimals)
+
+    // then
+    expect(actual).to(equalLineByLine(expected, atLine: 7, ignoringExtraLines: true))
+  }
+
+  func test__render_selections__givenFragmentMergingStrategy_mergeNone_rendersBody() throws {
+    // given
+    schemaSDL = """
+    type Query {
+      allAnimals: [Animal!]
+    }
+
+    type Animal {
+      string: String!
+      int: Int!
+    }
+    """
+
+    document = """
+    query TestOperation {
+      allAnimals {
+        ...IdentityFragment
+        ...NameFragment
+      }
+    }
+
+    fragment IdentityFragment on Animal {
+      int
+    }
+
+    fragment NameFragment on Animal {
+      string
+    }
+    """
+
+    let expected = """
+      public static var __selections: [ApolloAPI.Selection] { [
+        .field("__typename", String.self),
+        .fragment(IdentityFragment.self),
+        .fragment(NameFragment.self),
+      ] }
+
+      public struct Fragments: FragmentContainer {
+        public let __data: DataDict
+        public init(_dataDict: DataDict) { __data = _dataDict }
+
+        public var identityFragment: IdentityFragment { _toFragment() }
+        public var nameFragment: NameFragment { _toFragment() }
+    """
+
+    // when
+    try buildSubjectAndOperation(fragmentMergingStrategy: .mergeNone)
     let allAnimals = try XCTUnwrap(
       operation[field: "query"]?[field: "allAnimals"] as? IR.EntityField
     )

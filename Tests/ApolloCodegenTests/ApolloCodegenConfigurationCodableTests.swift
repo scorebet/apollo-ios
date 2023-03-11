@@ -49,7 +49,8 @@ class ApolloCodegenConfigurationCodableTests: XCTestCase {
           cocoapodsCompatibleImportStatements: true,
           warningsOnDeprecatedUsage: .exclude,
           conversionStrategies:.init(enumCases: .none),
-          pruneGeneratedFiles: false
+          pruneGeneratedFiles: false,
+          fragmentMergingStrategy: .mergeNone
         ),
         experimentalFeatures: .init(
           clientControlledNullability: true,
@@ -88,6 +89,7 @@ class ApolloCodegenConfigurationCodableTests: XCTestCase {
             "enumCases" : "none"
           },
           "deprecatedEnumCases" : "exclude",
+          "fragmentMergingStrategy" : "mergeNone",
           "pruneGeneratedFiles" : false,
           "queryStringLiteralFormat" : "singleLine",
           "schemaDocumentation" : "exclude",

@@ -298,7 +298,7 @@ struct SelectionSetTemplate {
     \(ifLet: selections.direct?.fields.values, {
       "\($0.map { FieldAccessorTemplate($0, in: scope) }, separator: "\n")"
       })
-    \(selections.merged.fields.values.map { FieldAccessorTemplate($0, in: scope) }, separator: "\n")
+    \(if: config.config.options.fragmentMergingStrategy == .mergeAllFragmentSpreads, "\(selections.merged.fields.values.map { FieldAccessorTemplate($0, in: scope) }, separator: "\n")")
     """
   }
 
@@ -331,7 +331,7 @@ struct SelectionSetTemplate {
     \(ifLet: selections.direct?.inlineFragments.values, {
         "\($0.map { InlineFragmentAccessorTemplate($0) }, separator: "\n")"
       })
-    \(selections.merged.inlineFragments.values.map { InlineFragmentAccessorTemplate($0) }, separator: "\n")
+    \(if: config.config.options.fragmentMergingStrategy == .mergeAllFragmentSpreads, "\(selections.merged.inlineFragments.values.map { InlineFragmentAccessorTemplate($0) }, separator: "\n")")
     """
   }
 
@@ -367,9 +367,7 @@ struct SelectionSetTemplate {
       \(ifLet: selections.direct?.fragments.values, {
         "\($0.map { FragmentAccessorTemplate($0, in: scope) }, separator: "\n")"
         })
-      \(selections.merged.fragments.values.map {
-          FragmentAccessorTemplate($0, in: scope)
-        }, separator: "\n")
+      \(if: config.config.options.fragmentMergingStrategy == .mergeAllFragmentSpreads, "\(selections.merged.fragments.values.map { FragmentAccessorTemplate($0, in: scope) }, separator: "\n")")
     }
     """
   }
@@ -536,8 +534,8 @@ struct SelectionSetTemplate {
     \(ifLet: selections.direct?.inlineFragments.values, {
         "\($0.map { render(inlineFragment: $0) }, separator: "\n\n")"
       })
-    \(selections.merged.inlineFragments.values.map { render(inlineFragment: $0) }, separator: "\n\n")
-    """    
+    \(if: config.config.options.fragmentMergingStrategy == .mergeAllFragmentSpreads, "\(selections.merged.inlineFragments.values.map { render(inlineFragment: $0) }, separator: "\n\n")")
+    """
   }
 
 }
@@ -842,7 +840,7 @@ fileprivate extension IR.ScopeCondition {
     \(ifLet: conditions, { "If\($0.typeNameComponents)"})
     """).description
   }
-  
+
 }
 
 fileprivate extension AnyOf where T == IR.InclusionConditions {
