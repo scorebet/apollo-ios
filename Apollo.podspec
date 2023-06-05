@@ -1,11 +1,11 @@
 Pod::Spec.new do |s|
   s.name = 'Apollo'
-  s.version = `scripts/get-version.sh`
+  s.version = `echo "$(scripts/get-version.sh)-connect"`
   s.author = 'Apollo GraphQL'
   s.homepage = 'https://github.com/apollographql/apollo-ios'
   s.license = { :type => 'MIT', :file => 'LICENSE' }
   s.summary = "A GraphQL client for iOS, written in Swift."
-  s.source = { :git => 'https://github.com/apollographql/apollo-ios.git', :tag => s.version }
+  s.source = { :git => 'https://github.com/scorebet/apollo-ios.git', :tag => s.version }
   s.requires_arc = true
   s.swift_version = '5.6'
   s.default_subspecs = 'Core'
@@ -16,7 +16,7 @@ Pod::Spec.new do |s|
 
   cli_binary_name = 'apollo-ios-cli'
   s.preserve_paths = [cli_binary_name]
-  s.prepare_command = <<-CMD    
+  s.prepare_command = <<-CMD
     make clean build-cli-for-cocoapods
     cp .build/release/#{cli_binary_name} #{cli_binary_name}
     chmod +x #{cli_binary_name}
@@ -42,7 +42,7 @@ Pod::Spec.new do |s|
 
   s.subspec 'ApolloTestSupport' do |ss|
     ss.source_files = 'Sources/ApolloTestSupport/*.swift'
-    ss.dependency 'Apollo/Core'    
+    ss.dependency 'Apollo/Core'
   end
 
 end
