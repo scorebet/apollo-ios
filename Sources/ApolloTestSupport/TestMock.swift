@@ -1,6 +1,8 @@
 #if !COCOAPODS
 @_exported @testable import ApolloAPI
 @testable import Apollo
+#else
+@testable import Apollo
 #endif
 import Foundation
 
@@ -91,7 +93,7 @@ public class Mock<O: MockObject>: AnyMock, Hashable {
   // MARK: Hashable
 
   public static func ==(lhs: Mock<O>, rhs: Mock<O>) -> Bool {
-    lhs._data == rhs._data    
+    lhs._data == rhs._data
   }
 
   public func hash(into hasher: inout Hasher) {

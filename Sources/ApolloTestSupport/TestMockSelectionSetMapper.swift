@@ -1,6 +1,8 @@
 #if !COCOAPODS
 @testable import ApolloAPI
 @testable import Apollo
+#else
+@testable import Apollo
 #endif
 import Foundation
 
