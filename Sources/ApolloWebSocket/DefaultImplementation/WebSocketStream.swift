@@ -15,12 +15,16 @@ protocol WebSocketStreamDelegate: AnyObject {
   func streamDidError(error: Error?)
 }
 
+public protocol SOCKSProxyable {
+  /// Determines whether a SOCKS proxy is enabled on the underlying request.
+  /// Mostly useful for debugging with tools like Charles Proxy.
+  var enableSOCKSProxy: Bool { get set }
+}
+
 // This protocol is to allow custom implemention of the underlining stream.
 // This way custom socket libraries (e.g. linux) can be used
 protocol WebSocketStream {
   var delegate: WebSocketStreamDelegate? { get set }
-
-  var enableSOCKSProxy: Bool { get set }
 
   func connect(url: URL,
                port: Int,
@@ -38,7 +42,7 @@ protocol WebSocketStream {
   #endif
 }
 
-class FoundationStream : NSObject, WebSocketStream, StreamDelegate  {
+class FoundationStream : NSObject, WebSocketStream, StreamDelegate, SOCKSProxyable  {
   private let workQueue = DispatchQueue(label: "com.apollographql.websocket", attributes: [])
   private var inputStream: InputStream?
   private var outputStream: OutputStream?

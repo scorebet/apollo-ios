@@ -1,25 +1,15 @@
-//
-//  GraphQLFileTests.swift
-//  ApolloTests
-//
-//  Created by Ellen Shapiro on 3/18/20.
-//  Copyright © 2020 Apollo GraphQL. All rights reserved.
-//
-
 import XCTest
 
 @testable import Apollo
-import ApolloTestSupport
+import ApolloInternalTestHelpers
 
 class GraphQLFileTests: XCTestCase {
   
   func testCreatingFileWithKnownBadURLFails() {
     let url = URL(fileURLWithPath: "/known/bad/path")
-    do {
-      _ = try GraphQLFile(fieldName: "test",
-                          originalName: "test",
-                          fileURL: url)
-    } catch {
+    XCTAssertThrowsError(try GraphQLFile(fieldName: "test",
+                                         originalName: "test",
+                                         fileURL: url)) { error in
       switch error {
       case GraphQLFile.GraphQLFileError.couldNotGetFileSize(let fileURL):
         XCTAssertEqual(fileURL, url)

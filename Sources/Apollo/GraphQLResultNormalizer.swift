@@ -1,34 +1,81 @@
 import Foundation
+#if !COCOAPODS
+import ApolloAPI
+#endif
 
-final class GraphQLResultNormalizer: GraphQLResultAccumulator {
+struct ResultNormalizerFactory {
+  private init() {}
+
+  static func selectionSetDataNormalizer() -> SelectionSetDataResultNormalizer {
+    SelectionSetDataResultNormalizer()
+  }
+
+  static func networkResponseDataNormalizer() -> RawJSONResultNormalizer {
+    RawJSONResultNormalizer()
+  }
+}
+
+class BaseGraphQLResultNormalizer: GraphQLResultAccumulator {
+  
+  let requiresCacheKeyComputation: Bool = true
+
   private var records: RecordSet = [:]
 
-  func accept(scalar: JSONValue, info: GraphQLResolveInfo) -> JSONValue {
+  fileprivate init() {}
+
+  final func accept(scalar: JSONValue, info: FieldExecutionInfo) -> JSONValue? {
     return scalar
   }
 
-  func acceptNullValue(info: GraphQLResolveInfo) -> JSONValue {
+  func accept(customScalar: JSONValue, info: FieldExecutionInfo) -> JSONValue? {
+    return customScalar
+  }
+
+  final func acceptNullValue(info: FieldExecutionInfo) -> JSONValue? {
     return NSNull()
   }
 
-  func accept(list: [JSONValue], info: GraphQLResolveInfo) -> JSONValue {
+  final func acceptMissingValue(info: FieldExecutionInfo) -> JSONValue? {
+    return nil
+  }
+
+  final func accept(list: [JSONValue?], info: FieldExecutionInfo) -> JSONValue? {
     return list
   }
 
-  func accept(fieldEntry: JSONValue, info: GraphQLResolveInfo) -> (key: String, value: JSONValue) {
-    return (info.cacheKeyForField, fieldEntry)
+  final func accept(childObject: CacheReference, info: FieldExecutionInfo) -> JSONValue? {
+    return childObject
   }
 
-  func accept(fieldEntries: [(key: String, value: JSONValue)], info: GraphQLResolveInfo) throws -> JSONValue {
+  final func accept(fieldEntry: JSONValue?, info: FieldExecutionInfo) throws -> (key: String, value: JSONValue)? {
+    guard let fieldEntry else { return nil }
+    return (try info.cacheKeyForField(), fieldEntry)
+  }
+
+  final func accept(
+    fieldEntries: [(key: String, value: JSONValue)],
+    info: ObjectExecutionInfo
+  ) throws -> CacheReference {
     let cachePath = info.cachePath.joined
 
     let object = JSONObject(fieldEntries, uniquingKeysWith: { (_, last) in last })
     records.merge(record: Record(key: cachePath, object))
-    
-    return CacheReference(key: cachePath)
+
+    return CacheReference(cachePath)
   }
 
-  func finish(rootValue: JSONValue, info: GraphQLResolveInfo) throws -> RecordSet {
+  final func finish(rootValue: CacheReference, info: ObjectExecutionInfo) throws -> RecordSet {
     return records
+  }
+}
+
+final class RawJSONResultNormalizer: BaseGraphQLResultNormalizer {}
+
+final class SelectionSetDataResultNormalizer: BaseGraphQLResultNormalizer {
+  override final func accept(customScalar: JSONValue, info: FieldExecutionInfo) -> JSONValue? {
+    if let customScalar = customScalar as? JSONEncodable {
+      return customScalar._jsonValue
+    }
+    return customScalar
   }
 }

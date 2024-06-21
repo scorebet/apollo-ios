@@ -1,4 +1,7 @@
 import Foundation
+#if !COCOAPODS
+import ApolloAPI
+#endif
 
 /// An interceptor which writes data to the cache, following the `HTTPRequest`'s `cachePolicy`.
 public struct CacheWriteInterceptor: ApolloInterceptor {
@@ -15,6 +18,7 @@ public struct CacheWriteInterceptor: ApolloInterceptor {
   }
   
   public let store: ApolloStore
+  public var id: String = UUID().uuidString
   
   /// Designated initializer
   ///
@@ -31,26 +35,31 @@ public struct CacheWriteInterceptor: ApolloInterceptor {
     
     guard request.cachePolicy != .fetchIgnoringCacheCompletely else {
       // If we're ignoring the cache completely, we're not writing to it.
-      chain.proceedAsync(request: request,
-                         response: response,
-                         completion: completion)
+      chain.proceedAsync(
+        request: request,
+        response: response,
+        interceptor: self,
+        completion: completion
+      )
       return
     }
     
     guard
       let createdResponse = response,
       let legacyResponse = createdResponse.legacyResponse else {
-        chain.handleErrorAsync(CacheWriteError.noResponseToParse,
-                             request: request,
-                             response: response,
-                             completion: completion)
+      chain.handleErrorAsync(
+        CacheWriteError.noResponseToParse,
+        request: request,
+        response: response,
+        completion: completion
+      )
         return
     }
     
     do {
-      let (_, records) = try legacyResponse.parseResult(cacheKeyForObject: self.store.cacheKeyForObject)
+      let (_, records) = try legacyResponse.parseResult()
       
-      guard chain.isNotCancelled else {
+      guard !chain.isCancelled else {
         return
       }
       
@@ -58,14 +67,20 @@ public struct CacheWriteInterceptor: ApolloInterceptor {
         self.store.publish(records: records, identifier: request.contextIdentifier)
       }
       
-      chain.proceedAsync(request: request,
-                         response: createdResponse,
-                         completion: completion)
+      chain.proceedAsync(
+        request: request,
+        response: createdResponse,
+        interceptor: self,
+        completion: completion
+      )
+
     } catch {
-      chain.handleErrorAsync(error,
-                             request: request,
-                             response: response,
-                             completion: completion)
+      chain.handleErrorAsync(
+        error,
+        request: request,
+        response: response,
+        completion: completion
+      )
     }
   }
 }

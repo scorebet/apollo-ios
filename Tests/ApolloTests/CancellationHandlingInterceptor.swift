@@ -8,9 +8,12 @@
 
 import Foundation
 import Apollo
+import ApolloAPI
 
 class CancellationHandlingInterceptor: ApolloInterceptor, Cancellable {
   private(set) var hasBeenCancelled = false
+
+  public var id: String = UUID().uuidString
   
   func interceptAsync<Operation: GraphQLOperation>(
     chain: RequestChain,
@@ -23,9 +26,12 @@ class CancellationHandlingInterceptor: ApolloInterceptor, Cancellable {
     }
     
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-      chain.proceedAsync(request: request,
-                         response: response,
-                         completion: completion)
+      chain.proceedAsync(
+        request: request,
+        response: response,
+        interceptor: self,
+        completion: completion
+      )
     }
   }
   

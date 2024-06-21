@@ -8,10 +8,13 @@
 
 import Foundation
 import Apollo
+import ApolloAPI
 
 class RetryToCountThenSucceedInterceptor: ApolloInterceptor {
   let timesToCallRetry: Int
   var timesRetryHasBeenCalled = 0
+
+  public var id: String = UUID().uuidString
   
   init(timesToCallRetry: Int) {
     self.timesToCallRetry = timesToCallRetry
@@ -27,9 +30,12 @@ class RetryToCountThenSucceedInterceptor: ApolloInterceptor {
       chain.retry(request: request,
                   completion: completion)
     } else {
-      chain.proceedAsync(request: request,
-                         response: response,
-                         completion: completion)
+      chain.proceedAsync(
+        request: request,
+        response: response,
+        interceptor: self,
+        completion: completion
+      )
     }
   }
 }

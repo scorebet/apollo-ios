@@ -1,7 +1,8 @@
 import Foundation
 import JavaScriptCore
+import OrderedCollections
 
-indirect enum GraphQLValue: Equatable {
+indirect enum GraphQLValue: Hashable {
   case variable(String)
   case int(Int)
   case float(Double)
@@ -10,7 +11,7 @@ indirect enum GraphQLValue: Equatable {
   case null
   case `enum`(String)
   case list([GraphQLValue])
-  case object([String: GraphQLValue])
+  case object(OrderedDictionary<String, GraphQLValue>)
 }
 
 extension GraphQLValue: JavaScriptValueDecodable {
@@ -35,9 +36,28 @@ extension GraphQLValue: JavaScriptValueDecodable {
     case "EnumValue":
       self = .enum(jsValue["value"].toString())
     case "ListValue":
-      self = .list(.fromJSValue(jsValue["value"], bridge: bridge))
+      var value = jsValue["value"]
+      if value.isUndefined {
+        value = jsValue["values"]
+      }
+      self = .list(.fromJSValue(value, bridge: bridge))
     case "ObjectValue":
-      self = .object(.fromJSValue(jsValue["value"], bridge: bridge))
+      let value = jsValue["value"]
+
+      /// The JS frontend does not do value conversions of the default values for input objects,
+      /// because no other compilation is needed, these are passed through as is from `graphql-js`.
+      /// We need to handle both converted object values and default values and represented by
+      /// `graphql-js`.
+      if !value.isUndefined {
+        self = .object(.fromJSValue(value, bridge: bridge))
+
+      } else {
+        let fields = jsValue["fields"].toOrderedDictionary { field in
+          (field["name"]["value"].toString(), GraphQLValue(field["value"], bridge: bridge))
+        }
+        self = .object(fields)
+      }
+
     default:
       preconditionFailure("""
         Unknown GraphQL value of kind "\(kind)"

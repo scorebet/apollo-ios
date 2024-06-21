@@ -1,5 +1,11 @@
+#if !COCOAPODS
+import ApolloAPI
+#endif
+
 /// A protocol to set up a chainable unit of networking work.
 public protocol ApolloInterceptor {
+
+  var id: String { get set }
   
   /// Called when this interceptor should do its work.
   ///

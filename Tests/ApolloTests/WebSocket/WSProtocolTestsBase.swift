@@ -1,9 +1,11 @@
 import XCTest
 @testable import ApolloWebSocket
-import ApolloTestSupport
+import ApolloInternalTestHelpers
 import Nimble
 import Apollo
-import SubscriptionAPI
+import ApolloAPI
+// import SubscriptionAPI
+#warning("When SubscriptionAPI target is regenerated and compiles then decide what to do here")
 
 class WSProtocolTestsBase: XCTestCase {
   private var store: ApolloStore!
@@ -40,9 +42,9 @@ class WSProtocolTestsBase: XCTestCase {
     fatalError("Subclasses must override this property!")
   }
 
-  func buildWebSocket() {
+  func buildWebSocket(protocol: WebSocket.WSProtocol) {
     mockWebSocketDelegate = MockWebSocketDelegate()
-    mockWebSocket = MockWebSocket(request: urlRequest)
+    mockWebSocket = MockWebSocket(request: urlRequest, protocol: `protocol`)
     websocketTransport = WebSocketTransport(websocket: mockWebSocket, store: store)
   }
 
@@ -51,7 +53,7 @@ class WSProtocolTestsBase: XCTestCase {
   }
 
   func connectWebSocket() {
-    websocketTransport.socketConnectionState.mutate { $0 = .connected }
+    websocketTransport.$socketConnectionState.mutate { $0 = .connected }
   }
 
   func ackConnection() {
@@ -70,10 +72,9 @@ class WSProtocolTestsBase: XCTestCase {
 }
 
 extension GraphQLOperation {
-  var requestBody: GraphQLMap {
+  var requestBody: JSONEncodableDictionary {
     ApolloRequestBodyCreator().requestBody(
       for: self,
-      sendOperationIdentifiers: false,
       sendQueryDocument: true,
       autoPersistQuery: false
     )

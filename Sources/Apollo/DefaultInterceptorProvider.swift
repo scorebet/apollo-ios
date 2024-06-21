@@ -1,4 +1,6 @@
-import Foundation
+#if !COCOAPODS
+import ApolloAPI
+#endif
 
 /// The default interceptor provider for typescript-generated code
 open class DefaultInterceptorProvider: InterceptorProvider {
@@ -27,13 +29,16 @@ open class DefaultInterceptorProvider: InterceptorProvider {
     }
   }
 
-  open func interceptors<Operation: GraphQLOperation>(for operation: Operation) -> [ApolloInterceptor] {
+  open func interceptors<Operation: GraphQLOperation>(
+    for operation: Operation
+  ) -> [any ApolloInterceptor] {
       return [
         MaxRetryInterceptor(),
         CacheReadInterceptor(store: self.store),
         NetworkFetchInterceptor(client: self.client),
         ResponseCodeInterceptor(),
-        JSONResponseParsingInterceptor(cacheKeyForObject: self.store.cacheKeyForObject),
+        MultipartResponseParsingInterceptor(),
+        JSONResponseParsingInterceptor(),
         AutomaticPersistedQueryInterceptor(),
         CacheWriteInterceptor(store: self.store),
     ]

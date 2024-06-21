@@ -1,48 +1,74 @@
 ---
 title: Introduction to Apollo iOS
-sidebar_title: Introduction
-description: A strongly-typed, caching GraphQL client for iOS, written in Swift
+description: A strongly typed, Swift-first GraphQL client
 ---
 
-import { Link } from 'gatsby';
+**Apollo iOS** is an [open-source](https://github.com/apollographql/apollo-ios) GraphQL client for native client applications, written in Swift.
 
-**Apollo iOS** is an [open-source](https://github.com/apollographql/apollo-ios) GraphQL client for native iOS apps, written in Swift. It enables you to execute queries and mutations against a GraphQL server and returns results as operation-specific Swift types.
+Apollo iOS executes queries and mutations using a GraphQL server and returns results as pre-generated and operation-specific Swift types. This means that Apollo iOS takes care of forming spec-compliant GraphQL requests, parsing JSON responses, and manually validating and type-casting response data for you!
 
-<p>
-  <Button
-    colorScheme="indigo"
-    as={Link}
-    to="./tutorial/tutorial-introduction/"
-    mr="4"
-  >
-    Start the tutorial
-  </Button>
-  <Button
-    as={Link}
-    to="./installation/"
-  >
+Apollo iOS also includes caching mechanisms specifically for GraphQL data, enabling you to execute GraphQL queries against your locally cached data directly.
+
+<div>
+  <ButtonLink href="./get-started/" size="lg">
     Installation
-  </Button>
-</p>
+  </ButtonLink>
+</div>
 
-## Benefits
+## Key features
 
-### Strong typing with codegen
+Apollo iOS has three key features:
 
-Thanks to strong typing in Apollo iOS, you don't need to deal with parsing JSON responses or passing around dictionaries of values that require manual casting. You also don't need to write model types yourself, because models are generated from the GraphQL operations your UI defines.
+- [Code generation](#code-generation)
+- A [normalized cache](#the-normalized-cache)
+- The [networking and GraphQL execution layer](#networking-and-graphql-execution)
 
-Because generated types are operation-specific, they include properties _only_ for the GraphQL fields included in their corresponding operation. This means you can rely on the Swift type checker to flag data access errors at compile time.
+Used together, these features dramatically improve the process of requesting, consuming, and persisting GraphQL data.
 
-Apollo's Xcode integration enables you to work with your UI code and corresponding GraphQL definitions side by side. It even validates your query documents, showing errors inline.
+### Code generation
 
-### Normalized caching
+Apollo iOS generates _objects_ based on the GraphQL operations you define, providing a type-safe way to use operations in your code.
 
-Apollo iOS normalizes operation results to build a client-side cache of your data, which is updated with every operation you execute. This means your UI is always internally consistent, and it can stay up to date with your backend with as few operation as possible.
+Each generated operation object contains a set of robust, strongly-typed models for that operation's response. These models enable you to access your GraphQL response data in a type-safe and flexible way.
 
-[Learn more about caching.](./caching/)
+Because generated response models are operation-specific, they _only_ include properties for the GraphQL fields within that operation. This means you can rely on the Swift type checker to flag data access errors at compile time.
+
+Apollo iOS also generates models for your GraphQL _fragments_. Using fragment models alongside your operation-specific models enables you to share common models across multiple GraphQL operations.
+
+Apollo iOS additionally generates models for your schema's input, enum, and custom scalar types, all of which help improve your code's type-safety.
+
+### The normalized cache
+
+Apollo iOS's normalized cache is designed specifically for GraphQL. It normalizes operation results to build a client-side cache of your data, updating with every operation you execute. 
+
+Apollo iOS's cache de-duplicates GraphQL responses, merging data from separate GraphQL operations into normalized objects. This enables your cache to stay up-to-date with your backend with as few operations as possible.
+
+The normalization of objects across operations means that your cache acts as a source of truth for your graph, enabling your application to react to changes in real-time.
+
+To learn more about the normalization process, see our blog post [Demystifying Cache Normalization](https://www.apollographql.com/blog/apollo-client/caching/demystifying-cache-normalization).
+
+### Networking and GraphQL execution
+
+Apollo iOS provides a networking API that helps you execute GraphQL operations against any spec-compliant GraphQL server. The GraphQL execution pipeline automatically caches your response data in the normalized cache and returns the response data using your generated, type-safe operation models.
+
+Apollo iOS handles all the heavy lifting of networking with GraphQL, including:
+
+- Constructing spec-compliant GraphQL network requests
+- Checking for existing data in the normalized cache
+- Executing network transport
+- Parsing and validating GraphQL network responses
+- Exposing GraphQL errors as type-safe Swift errors
+- Writing response data to the normalized cache
+- Mapping response data onto type-safe, generated operation models
 
 ## Related libraries
 
-[Apollo Kotlin](/kotlin/) is a GraphQL client for native Android apps written in Java and Kotlin. It offers Kotlin Multi-Platform integration as well.
+[Apollo Kotlin](/kotlin/) is a GraphQL client for native Android apps written in Java and Kotlin, and it also supports the Kotlin Multi-Platform integration.
 
-Apollo Client for JavaScript's [React integration](/react) works with [React Native](https://facebook.github.io/react-native/) on both iOS and Android.
+Apollo Client's integration for [React](/react) also works with [React Native](https://facebook.github.io/react-native/) on both iOS and Android.
+
+<div align="center">
+  <ButtonLink href="./get-started/" size="lg">
+    Get Started!
+  </ButtonLink>
+</div>

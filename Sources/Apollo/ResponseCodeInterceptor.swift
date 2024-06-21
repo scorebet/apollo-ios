@@ -1,7 +1,12 @@
 import Foundation
+#if !COCOAPODS
+import ApolloAPI
+#endif
 
 /// An interceptor to check the response code returned with a request.
 public struct ResponseCodeInterceptor: ApolloInterceptor {
+
+  public var id: String = UUID().uuidString
   
   public enum ResponseCodeError: Error, LocalizedError {
     case invalidResponseCode(response: HTTPURLResponse?, rawData: Data?)
@@ -40,20 +45,26 @@ public struct ResponseCodeInterceptor: ApolloInterceptor {
     completion: @escaping (Result<GraphQLResult<Operation.Data>, Error>) -> Void) {
     
     
-    guard response?.httpResponse.apollo.isSuccessful == true else {
-      let error = ResponseCodeError.invalidResponseCode(response: response?.httpResponse,
-                                                        
-                                                        rawData: response?.rawData)
+    guard response?.httpResponse.isSuccessful == true else {
+      let error = ResponseCodeError.invalidResponseCode(
+        response: response?.httpResponse,
+        rawData: response?.rawData
+      )
       
-      chain.handleErrorAsync(error,
-                             request: request,
-                             response: response,
-                             completion: completion)
+      chain.handleErrorAsync(
+        error,
+        request: request,
+        response: response,
+        completion: completion
+      )
       return
     }
     
-    chain.proceedAsync(request: request,
-                       response: response,
-                       completion: completion)
+      chain.proceedAsync(
+        request: request,
+        response: response,
+        interceptor: self,
+        completion: completion
+      )
   }
 }

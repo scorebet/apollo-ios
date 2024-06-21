@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1230"
+   LastUpgradeVersion = "1430"
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -59,6 +59,9 @@
          <TestPlanReference
             reference = "container:Tests/TestPlans/Apollo-CodegenTestPlan.xctestplan"
             default = "YES">
+         </TestPlanReference>
+         <TestPlanReference
+            reference = "container:Tests/TestPlans/Apollo-Codegen-CITestPlan.xctestplan">
          </TestPlanReference>
       </TestPlans>
    </TestAction>
