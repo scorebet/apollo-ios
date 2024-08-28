@@ -1,5 +1,3 @@
-import Foundation
-
 public enum Selection {
   /// A single field selection.
   case field(Field)
@@ -7,6 +5,8 @@ public enum Selection {
   case fragment(any Fragment.Type)
   /// An inline fragment with a child selection set nested in a parent selection set.
   case inlineFragment(any InlineFragment.Type)
+  /// A fragment spread or inline fragment marked with the `@defer` directive.
+  case deferred(if: Condition? = nil, any Deferrable.Type, label: String)
   /// A group of selections that have `@include/@skip` directives.
   case conditional(Conditions, [Selection])
 
@@ -60,7 +60,7 @@ public enum Selection {
   @inlinable static public func field(
     _ name: String,
     alias: String? = nil,
-    _ type: OutputTypeConvertible.Type,
+    _ type: any OutputTypeConvertible.Type,
     arguments: [String: InputValue]? = nil
   ) -> Selection {
     .field(.init(name, alias: alias, type: type._asOutputType, arguments: arguments))
@@ -131,14 +131,18 @@ extension Selection: Hashable {
     switch (lhs, rhs) {
     case let (.field(lhs), .field(rhs)):
       return lhs == rhs
-    case let (.fragment(lhs), .fragment(rhs)):
-      return lhs == rhs
-    case let (.inlineFragment(lhs), .inlineFragment(rhs)):
-      return lhs == rhs
+    case let (.fragment(lhsFragment), .fragment(rhsFragment)):
+      return lhsFragment == rhsFragment
+    case let (.inlineFragment(lhsFragment), .inlineFragment(rhsFragment)):
+      return lhsFragment == rhsFragment
+    case let (.deferred(lhsCondition, lhsFragment, lhsLabel),
+              .deferred(rhsCondition, rhsFragment, rhsLabel)):
+      return lhsCondition == rhsCondition &&
+      lhsFragment == rhsFragment &&
+      lhsLabel == rhsLabel
     case let (.conditional(lhsConditions, lhsSelections),
               .conditional(rhsConditions, rhsSelections)):
-      return lhsConditions == rhsConditions &&
-      lhsSelections == rhsSelections
+      return lhsConditions == rhsConditions && lhsSelections == rhsSelections
     default: return false
     }
   }

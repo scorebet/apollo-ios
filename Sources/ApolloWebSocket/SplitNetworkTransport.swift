@@ -6,8 +6,8 @@ import ApolloAPI
 
 /// A network transport that sends subscriptions using one `NetworkTransport` and other requests using another `NetworkTransport`. Ideal for sending subscriptions via a web socket but everything else via HTTP.
 public class SplitNetworkTransport {
-  private let uploadingNetworkTransport: UploadingNetworkTransport
-  private let webSocketNetworkTransport: NetworkTransport
+  private let uploadingNetworkTransport: any UploadingNetworkTransport
+  private let webSocketNetworkTransport: any NetworkTransport
 
   public var clientName: String {
     let httpName = self.uploadingNetworkTransport.clientName
@@ -34,7 +34,7 @@ public class SplitNetworkTransport {
   /// - Parameters:
   ///   - uploadingNetworkTransport: An `UploadingNetworkTransport` to use for non-subscription requests. Should generally be a `RequestChainNetworkTransport` or something similar.
   ///   - webSocketNetworkTransport: A `NetworkTransport` to use for subscription requests. Should generally be a `WebSocketTransport` or something similar.
-  public init(uploadingNetworkTransport: UploadingNetworkTransport, webSocketNetworkTransport: NetworkTransport) {
+  public init(uploadingNetworkTransport: any UploadingNetworkTransport, webSocketNetworkTransport: any NetworkTransport) {
     self.uploadingNetworkTransport = uploadingNetworkTransport
     self.webSocketNetworkTransport = webSocketNetworkTransport
   }
@@ -47,18 +47,21 @@ extension SplitNetworkTransport: NetworkTransport {
   public func send<Operation: GraphQLOperation>(operation: Operation,
                                                 cachePolicy: CachePolicy,
                                                 contextIdentifier: UUID? = nil,
+                                                context: (any RequestContext)? = nil,
                                                 callbackQueue: DispatchQueue = .main,
-                                                completionHandler: @escaping (Result<GraphQLResult<Operation.Data>, Error>) -> Void) -> Cancellable {
+                                                completionHandler: @escaping (Result<GraphQLResult<Operation.Data>, any Error>) -> Void) -> any Cancellable {
     if Operation.operationType == .subscription {
       return webSocketNetworkTransport.send(operation: operation,
                                             cachePolicy: cachePolicy,
                                             contextIdentifier: contextIdentifier,
+                                            context: context,
                                             callbackQueue: callbackQueue,
                                             completionHandler: completionHandler)
     } else {
       return uploadingNetworkTransport.send(operation: operation,
                                             cachePolicy: cachePolicy,
                                             contextIdentifier: contextIdentifier,
+                                            context: context,
                                             callbackQueue: callbackQueue,
                                             completionHandler: completionHandler)
     }
@@ -72,10 +75,12 @@ extension SplitNetworkTransport: UploadingNetworkTransport {
   public func upload<Operation: GraphQLOperation>(
     operation: Operation,
     files: [GraphQLFile],
+    context: (any RequestContext)?,
     callbackQueue: DispatchQueue = .main,
-    completionHandler: @escaping (Result<GraphQLResult<Operation.Data>, Error>) -> Void) -> Cancellable {
+    completionHandler: @escaping (Result<GraphQLResult<Operation.Data>, any Error>) -> Void) -> any Cancellable {
     return uploadingNetworkTransport.upload(operation: operation,
                                             files: files,
+                                            context: context,
                                             callbackQueue: callbackQueue,
                                             completionHandler: completionHandler)
   }

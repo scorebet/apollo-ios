@@ -6,7 +6,7 @@ import ApolloAPI
 /// A request class allowing for a multipart-upload request.
 open class UploadRequest<Operation: GraphQLOperation>: HTTPRequest<Operation> {
   
-  public let requestBodyCreator: RequestBodyCreator
+  public let requestBodyCreator: any RequestBodyCreator
   public let files: [GraphQLFile]
   public let manualBoundary: String?
   
@@ -22,6 +22,7 @@ open class UploadRequest<Operation: GraphQLOperation>: HTTPRequest<Operation> {
   ///   - additionalHeaders: Any additional headers you wish to add by default to this request. Defaults to an empty dictionary.
   ///   - files: The array of files to upload for all `Upload` parameters in the mutation.
   ///   - manualBoundary: [optional] A manual boundary to pass in. A default boundary will be used otherwise. Defaults to nil.
+  ///   - context: [optional] A context that is being passed through the request chain. Should default to `nil`.
   ///   - requestBodyCreator: An object conforming to the `RequestBodyCreator` protocol to assist with creating the request body. Defaults to the provided `ApolloRequestBodyCreator` implementation.
   public init(graphQLEndpoint: URL,
               operation: Operation,
@@ -30,7 +31,8 @@ open class UploadRequest<Operation: GraphQLOperation>: HTTPRequest<Operation> {
               additionalHeaders: [String: String] = [:],
               files: [GraphQLFile],
               manualBoundary: String? = nil,
-              requestBodyCreator: RequestBodyCreator = ApolloRequestBodyCreator()) {
+              context: (any RequestContext)? = nil,
+              requestBodyCreator: any RequestBodyCreator = ApolloRequestBodyCreator()) {
     self.requestBodyCreator = requestBodyCreator
     self.files = files
     self.manualBoundary = manualBoundary
@@ -39,7 +41,8 @@ open class UploadRequest<Operation: GraphQLOperation>: HTTPRequest<Operation> {
                contentType: "multipart/form-data",
                clientName: clientName,
                clientVersion: clientVersion,
-               additionalHeaders: additionalHeaders)
+               additionalHeaders: additionalHeaders,
+               context: context)
   }
   
   public override func toURLRequest() throws -> URLRequest {
@@ -76,7 +79,7 @@ open class UploadRequest<Operation: GraphQLOperation>: HTTPRequest<Operation> {
     var variables = fields["variables"] as? JSONEncodableDictionary ?? JSONEncodableDictionary()
     for fieldName in fieldsForFiles {
       if let value = variables[fieldName],
-         let arrayValue = value as? [JSONEncodable] {
+         let arrayValue = value as? [any JSONEncodable] {
         let arrayOfNils: [NSNull?] = arrayValue.map { _ in NSNull() }
         variables.updateValue(arrayOfNils, forKey: fieldName)
       } else {

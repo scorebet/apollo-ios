@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="https://user-images.githubusercontent.com/146856/124335690-fc7ecd80-db4f-11eb-93fa-dcf4469bb07b.png" alt="Apollo GraphQL"/>
+  <img src="https://raw.githubusercontent.com/apollographql/apollo-client-devtools/main/assets/apollo-wordmark.svg" alt="Apollo GraphQL"/>
 </p>
 
 <p align="center">
-  <a href="https://circleci.com/gh/apollographql/apollo-ios/tree/main">
-    <img src="https://circleci.com/gh/apollographql/apollo-ios/tree/main.svg?style=shield" alt="CircleCI build status">
+  <a href="https://github.com/apollographql/apollo-ios-dev/actions/workflows/ci-tests.yml">
+    <img src="https://github.com/apollographql/apollo-ios-dev/actions/workflows/ci-tests.yml/badge.svg?branch=main" alt="GitHub Action Status">
   </a>
   <a href="https://raw.githubusercontent.com/apollographql/apollo-ios/main/LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-lightgrey.svg?maxAge=2592000" alt="MIT license">
@@ -26,6 +26,10 @@
   </a>
 </p>
 
+| ☑️  Apollo Clients User Survey |
+| :----- |
+| What do you like best about Apollo iOS? What needs to be improved? Please tell us by taking a [one-minute survey](https://docs.google.com/forms/d/e/1FAIpQLSczNDXfJne3ZUOXjk9Ursm9JYvhTh1_nFTDfdq3XBAFWCzplQ/viewform?usp=pp_url&entry.1170701325=Apollo+iOS&entry.204965213=Readme). Your responses will help us understand Apollo iOS usage and allow us to serve you better. |
+
 ### Apollo iOS is a strongly-typed, caching GraphQL client, written in Swift
 
 It allows you to execute queries and mutations against a GraphQL server, and returns results as query-specific Swift types. This means you don’t have to deal with parsing JSON, or passing around dictionaries and making clients cast values to the right type manually. You also don't have to write model types yourself, because these are generated from the GraphQL definitions your UI uses.
@@ -42,6 +46,10 @@ If you are new to Apollo iOS we recommend our [Getting Started](https://www.apol
 
 There is also [comprehensive documentation](https://www.apollographql.com/docs/ios/) including an [API reference](https://www.apollographql.com/docs/ios/docc/documentation/index).
 
+### Carthage/XCFramework Support
+
+The Apollo iOS repo no longer contains an Xcode project, as a result if you are using Carthage or need to build XCFrameworks for use in your development environment you will want to use the [apollo-ios-xcframework](https://github.com/apollographql/apollo-ios-xcframework) repo we have created that contains an Xcode project generated with Tuist that can be used for this purpose and is tagged to match the releases of Apollo iOS.
+
 ## Releases and changelog
 
 [All releases](https://github.com/apollographql/apollo-ios/releases) are catalogued and we maintain a [changelog](https://github.com/apollographql/apollo-ios/blob/main/CHANGELOG.md) which details all changes to the library.
@@ -52,13 +60,7 @@ The [roadmap](https://github.com/apollographql/apollo-ios/blob/main/ROADMAP.md) 
 
 ## Contributing
 
-This project is being developed using Xcode 14 and Swift 5.7.
-
-If you open `Apollo.xcodeproj`, you should be able to run the tests of the `Apollo`, `ApolloSQLite`, and `ApolloWebSocket` frameworks on your Mac or an iOS Simulator. `ApolloCodegenLib` tests can only be run on macOS.
-
-Some of the tests run against [a simple GraphQL server serving the Star Wars example schema](https://github.com/apollographql/starwars-server) (see installation instructions there).
-
-If you'd like to contribute, please refer to the [Apollo Contributor Guide](https://github.com/apollographql/apollo-ios/blob/main/CONTRIBUTING.md).
+If you'd like to contribute, please refer to the [Apollo Contributor Guide](https://github.com/apollographql/apollo-ios-dev/blob/main/CONTRIBUTING.md).
 
 ## Maintainers
 

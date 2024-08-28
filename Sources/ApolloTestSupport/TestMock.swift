@@ -1,9 +1,7 @@
 #if !COCOAPODS
-@_exported @testable import ApolloAPI
-@testable import Apollo
-#else
-@testable import Apollo
+@_exported import ApolloAPI
 #endif
+@_spi(Execution) import Apollo
 import Foundation
 
 @dynamicMemberLookup
@@ -25,11 +23,11 @@ public class Mock<O: MockObject>: AnyMock, Hashable {
       return _data[field.key.description] as? T
     }
     set {
-      _set(newValue, for: keyPath)
+      _setScalar(newValue, for: keyPath)
     }
   }
 
-  public func _set<T: AnyScalarType & Hashable>(
+  public func _setScalar<T: AnyScalarType & Hashable>(
     _ value: T?,
     for keyPath: KeyPath<O.MockFields, Field<T>>
   ) {
@@ -45,11 +43,11 @@ public class Mock<O: MockObject>: AnyMock, Hashable {
       return _data[field.key.description] as? T.MockValueCollectionType.Element
     }
     set {
-      _set(newValue, for: keyPath)
+      _setEntity(newValue, for: keyPath)
     }
   }
 
-  public func _set<T: MockFieldValue>(
+  public func _setEntity<T: MockFieldValue>(
     _ value: T.MockValueCollectionType.Element?,
     for keyPath: KeyPath<O.MockFields, Field<T>>
   ) {
@@ -65,13 +63,32 @@ public class Mock<O: MockObject>: AnyMock, Hashable {
       return _data[field.key.description] as? [T.MockValueCollectionType.Element]
     }
     set {
-      _set(newValue, for: keyPath)
+      _setList(newValue, for: keyPath)
     }
   }
 
-  @_disfavoredOverload
-  public func _set<T: MockFieldValue>(
+  public func _setList<T: MockFieldValue>(
     _ value: [T.MockValueCollectionType.Element]?,
+    for keyPath: KeyPath<O.MockFields, Field<Array<T>>>
+  ) {
+    let field = O._mockFields[keyPath: keyPath]
+    _data[field.key.description] = value?._unsafelyConvertToMockValue()
+  }
+
+  public subscript<T: AnyScalarType & Hashable>(
+    dynamicMember keyPath: KeyPath<O.MockFields, Field<Array<T>>>
+  ) -> [T]? {
+    get {
+      let field = O._mockFields[keyPath: keyPath]
+      return _data[field.key.description] as? [T]
+    }
+    set {
+      _setScalarList(newValue, for: keyPath)
+    }
+  }
+
+  public func _setScalarList<T: AnyScalarType & Hashable>(
+    _ value: [T]?,
     for keyPath: KeyPath<O.MockFields, Field<Array<T>>>
   ) {
     let field = O._mockFields[keyPath: keyPath]
@@ -80,7 +97,7 @@ public class Mock<O: MockObject>: AnyMock, Hashable {
 
   public var _selectionSetMockData: JSONObject {
     _data.mapValues {
-      if let mock = $0 as? AnyMock {
+      if let mock = $0.base as? (any AnyMock) {
         return mock._selectionSetMockData
       }
       if let mockArray = $0 as? Array<Any> {
@@ -93,7 +110,7 @@ public class Mock<O: MockObject>: AnyMock, Hashable {
   // MARK: Hashable
 
   public static func ==(lhs: Mock<O>, rhs: Mock<O>) -> Bool {
-    lhs._data == rhs._data
+    lhs._data == rhs._data    
   }
 
   public func hash(into hasher: inout Hasher) {
@@ -139,11 +156,11 @@ public protocol MockFieldValue {
 }
 
 extension Interface: MockFieldValue {
-  public typealias MockValueCollectionType = Array<AnyMock>
+  public typealias MockValueCollectionType = Array<any AnyMock>
 }
 
 extension Union: MockFieldValue {
-  public typealias MockValueCollectionType = Array<AnyMock>
+  public typealias MockValueCollectionType = Array<any AnyMock>
 }
 
 extension Optional: MockFieldValue where Wrapped: MockFieldValue {
@@ -171,20 +188,27 @@ fileprivate extension Array {
   }
 
   func _unsafelyConvertToSelectionSetData() -> [AnyHashable?] {
-    map { element in
-      switch element {
-      case let element as AnyMock:
-        return element._selectionSetMockData
+    map(_unsafelyConvertToSelectionSetData(element:))
+  }
 
-      case let innerArray as Array<Any>:
-        return innerArray._unsafelyConvertToSelectionSetData()
+  private func _unsafelyConvertToSelectionSetData(element: Any) -> AnyHashable? {
+    switch element {
+    case let element as any AnyMock:
+      return element._selectionSetMockData
 
-      case let element as AnyHashable:
+    case let innerArray as Array<Any>:
+      return innerArray._unsafelyConvertToSelectionSetData()
+
+    case let element as AnyHashable:
+      if DataDict._AnyHashableCanBeCoerced {
         return element
 
-      default:
-        return nil
+      } else {
+        return _unsafelyConvertToSelectionSetData(element: element.base)
       }
+
+    default:
+      return nil
     }
   }
 }

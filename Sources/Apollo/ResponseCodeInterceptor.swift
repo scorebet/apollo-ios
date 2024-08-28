@@ -33,16 +33,27 @@ public struct ResponseCodeInterceptor: ApolloInterceptor {
         return errorStrings.joined(separator: " ")
       }
     }
+    
+    public var graphQLError: GraphQLError? {
+      switch self {
+      case .invalidResponseCode(_, let rawData):
+        if let jsonRawData = rawData,
+           let jsonData = try? JSONSerialization.jsonObject(with: jsonRawData, options: .allowFragments) as? JSONObject {
+          return GraphQLError(jsonData)
+        }
+        return nil
+      }
+    }
   }
   
   /// Designated initializer
   public init() {}
   
   public func interceptAsync<Operation: GraphQLOperation>(
-    chain: RequestChain,
+    chain: any RequestChain,
     request: HTTPRequest<Operation>,
     response: HTTPResponse<Operation>?,
-    completion: @escaping (Result<GraphQLResult<Operation.Data>, Error>) -> Void) {
+    completion: @escaping (Result<GraphQLResult<Operation.Data>, any Error>) -> Void) {
     
     
     guard response?.httpResponse.isSuccessful == true else {

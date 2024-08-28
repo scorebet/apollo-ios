@@ -8,11 +8,14 @@ public protocol _ObjectData_Transformer {
 /// sources, using a `_transformer` to ensure the raw data from different sources (which may be in
 /// different formats) can be consumed with a consistent API.
 public struct ObjectData {
-  public let _transformer: _ObjectData_Transformer
+  public let _transformer: any _ObjectData_Transformer
   public let _rawData: [String: AnyHashable]
 
+  @usableFromInline internal static let _boolTrue = AnyHashable(true)
+  @usableFromInline internal static let _boolFalse = AnyHashable(false)
+
   public init(
-    _transformer: _ObjectData_Transformer,
+    _transformer: any _ObjectData_Transformer,
     _rawData: [String: AnyHashable]
   ) {
     self._transformer = _transformer
@@ -22,18 +25,18 @@ public struct ObjectData {
   @inlinable public subscript(_ key: String) -> (any ScalarType)? {
     guard let rawValue = _rawData[key] else { return nil }
     var value: AnyHashable = rawValue
-    
-    // Attempting cast to `Int` to ensure we always use `Int` vs `Int32` or `Int64` for consistency and ScalarType casting,
-    // also need to attempt `Bool` cast first to ensure a bool doesn't get inadvertently converted to `Int`
-    switch value {
-    case let boolVal as Bool:
+
+    // This check is based on AnyHashable using a canonical representation of the type-erased value so
+    // instances wrapping the same value of any type compare as equal. Therefore while Int(1) and Int(0)
+    // might be representable as Bool they will never equal Bool(true) nor Bool(false).
+    if let boolVal = value as? Bool, (value == Self._boolTrue || value == Self._boolFalse) {
       value = boolVal
-    case let intVal as Int:
-      value = intVal
-    default:
-      break
+
+    // Cast to `Int` to ensure we always use `Int` vs `Int32` or `Int64` for consistency and ScalarType casting
+    } else if let intValue = value as? Int {
+      value = intValue
     }
-    
+
     return _transformer.transform(value)
   }
 
@@ -55,11 +58,11 @@ public struct ObjectData {
 /// This type wraps data from different sources, using a `_transformer` to ensure the raw data from
 /// different sources (which may be in different formats) can be consumed with a consistent API.
 public struct ListData {
-  public let _transformer: _ObjectData_Transformer
+  public let _transformer: any _ObjectData_Transformer
   public let _rawData: [AnyHashable]
 
   public init(
-    _transformer: _ObjectData_Transformer,
+    _transformer: any _ObjectData_Transformer,
     _rawData: [AnyHashable]
   ) {
     self._transformer = _transformer
