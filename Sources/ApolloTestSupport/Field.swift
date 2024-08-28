@@ -1,5 +1,7 @@
 #if !COCOAPODS
 import ApolloAPI
+#else
+import Apollo
 #endif
 
 @propertyWrapper
