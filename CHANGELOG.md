@@ -1,5 +1,33 @@
 # Change Log
 
+## v1.15.3
+
+### Improvements
+- **Stable sort schema types for SchemaMetadata ([#514](https://github.com/apollographql/apollo-ios-dev/pull/514)):** _Thank you to [@asmundg](https://github.com/asmundg) for the contribution._
+
+### Fixed
+- **Fix multipart delimter boundary parsing ([#502](https://github.com/apollographql/apollo-ios-dev/pull/502)):** The multipart message parsing code was not splitting message chunks at the correct boundary when the dash boundary was present in the message body.
+- **Fix Websocket error broadcast for unsubscribed ID ([#506](https://github.com/apollographql/apollo-ios-dev/pull/506))** Only broadcast an error to all subscribers if there was no id field in the message.
+- **Fix bug with `AnyHashable` coercion for non-iOS platforms ([#517](https://github.com/apollographql/apollo-ios-dev/pull/517)):** Extended the _AnyHashableCanBeCoerced check to include macOS, watchOS, and tvOS with their respective minimum versions. _Thank you to [@VMLe](https://github.com/VMLe) for the fix._
+- **Fix assigning websocket callback queue before connecting ([#529](https://github.com/apollographql/apollo-ios-dev/pull/529)):** Fixed a race condition with the callback queue assignment during an unstable connection.
+- **Fix `GraphQLOperation` hash uniqueness ([#530](https://github.com/apollographql/apollo-ios-dev/pull/530)):** Adding uniqueness to GraphQLOperation hashing.
+
+## v1.15.2
+
+### Improvements
+- **Set `URLRequest` cache policy on GET requests ([#476](https://github.com/apollographql/apollo-ios-dev/pull/476)):** Uses the Apollo cache policy to set a comparable cache policy on `URLRequest`. Previously there was no way to opt-out of default `URLRequest` caching behaviour.
+- **Batch writing records to the SQLite store ([#498](https://github.com/apollographql/apollo-ios-dev/pull/498)):** Uses the `insertMany` to batch write records for a given operation vs previously performing a write for each individual record.
+
+### Fixed
+- **Fix `ListData` type check ([#473](https://github.com/apollographql/apollo-ios-dev/pull/473)):** Fixed bool type check in `ListData`.
+- **Remove local cache mutation type condition setter ([#485](https://github.com/apollographql/apollo-ios-dev/pull/485)):** Removes the setter for mutable inline fragments. The correct way to initialize with a type condition is to use `asRootEntityType`.
+
+## v1.15.1
+
+### Fixed
+- **Fix decoding of deprecated `selectionSetInitializer` option `localCacheMutations` ([#467](https://github.com/apollographql/apollo-ios-dev/pull/467)):** This option was deprecated in `1.15.0`, and the removal of the code to parse the option resulted in a validation error when the deprecated option was present in the JSON code generation config file. This is now fixed so that the option is ignored but does not cause code generation to fail.  
+- **Disfavour deprecated watch function ([#469](https://github.com/apollographql/apollo-ios-dev/pull/469)):** A deprecated version of the `watch` function matched the overload of the current version if certain parameters were omitted. This caused an incorrect deprecation warning in this situation. We've fixed this by adding `@_disfavoredOverload` to the deprecated function signature.
+  
 ## v1.15.0
 
 ### New
