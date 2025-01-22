@@ -16,6 +16,6 @@ Pod::Spec.new do |s|
   s.visionos.deployment_target = '1.0'
 
   s.source_files = 'Sources/ApolloTestSupport/*.swift'
-  s.dependency 'Apollo', '= ' + version
+  s.dependency 'Apollo/Core', '= ' + version
 
 end
