@@ -13,7 +13,7 @@ struct MultipartResponseDeferParser: MultipartResponseSpecificationParser {
       switch self {
 
       case let .unsupportedContentType(type):
-        return "Unsupported content type: application/json is required but got \(type)."
+        return "Unsupported content type: 'application/graphql-response+json' or 'application/json' are supported, received '\(type)'."
       case .cannotParseChunkData:
         return "The chunk data could not be parsed."
       case .cannotParsePayloadData:
@@ -23,7 +23,7 @@ struct MultipartResponseDeferParser: MultipartResponseSpecificationParser {
   }
 
   private enum DataLine {
-    case contentHeader(type: String)
+    case contentHeader(directives: [String])
     case json(object: JSONObject)
     case unknown
 
@@ -32,14 +32,8 @@ struct MultipartResponseDeferParser: MultipartResponseSpecificationParser {
     }
 
     private static func parse(_ dataLine: String) -> DataLine {
-      var contentTypeHeader: StaticString { "content-type:" }
-
-      if dataLine.starts(with: contentTypeHeader.description) {
-        let contentType = (dataLine
-          .components(separatedBy: ":").last ?? dataLine
-        ).trimmingCharacters(in: .whitespaces)
-
-        return .contentHeader(type: contentType)
+      if let directives = dataLine.parseContentTypeDirectives() {
+        return .contentHeader(directives: directives)
       }
 
       if
@@ -58,9 +52,9 @@ struct MultipartResponseDeferParser: MultipartResponseSpecificationParser {
   static func parse(_ chunk: String) -> Result<Data?, any Error> {
     for dataLine in chunk.components(separatedBy: Self.dataLineSeparator.description) {
       switch DataLine(dataLine.trimmingCharacters(in: .newlines)) {
-      case let .contentHeader(type):
-        guard type == "application/json" else {
-          return .failure(ParsingError.unsupportedContentType(type: type))
+      case let .contentHeader(directives):
+        guard directives.contains(where: { $0.isValidGraphQLContentType }) else {
+          return .failure(ParsingError.unsupportedContentType(type: directives.joined(separator: ";")))
         }
 
       case let .json(object):

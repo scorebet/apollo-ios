@@ -1,6 +1,6 @@
 # 🔮 Apollo iOS Roadmap
 
-**Last updated: 2024-10-29**
+**Last updated: 2025-01-21**
 
 For up to date release notes, refer to the project's [Changelog](https://github.com/apollographql/apollo-ios/blob/main/CHANGELOG.md).
 
@@ -31,15 +31,6 @@ The `@defer` directive enables your queries to receive data for specific fields 
 * ✅ Local cache mutations
 * 🔲 Selection Set Initializers (_next_)
 
-### [Improvements to code generation configuration and performance](https://github.com/apollographql/apollo-ios/milestone/67)
-
-_Status: To be released incrementally_
-
-- This effort encompasses several smaller features:
-    - ✅ Make codegen support Swift concurrency (`async`/`await`): available in v1.7.0
-    - ✅ [Add configuration for disabling merging of fragment fields](https://github.com/apollographql/apollo-ios/issues/2560)
-    - (in progress) Fix retain cycles and memory issues causing code generation to take very long on certain large, complex schemas with deeply nested fragment composition
-
 ### [2.0 Release] - Swift 6 compatibility
 
 To support the breaking language changes in Swift 6, a major version 2.0 of Apollo iOS will be released. This version will include support for the new Swift Concurrency Model and improve upon networking and caching APIs.
@@ -49,18 +40,20 @@ _Status: In design phase. Current RFC for design is available [here](https://git
 - ✅ [`ExistentialAny` upcoming feature](https://github.com/apollographql/apollo-ios/issues/3205)
 - (in progress) [`Sendable` types and `async/await` APIs](https://github.com/apollographql/apollo-ios/issues/3291)
 
-### `@oneOf` Input Object Support
-
-_Status: Awaiting final approval of RFC into the GraphQL specification._
-
-For more information on this feature, see the [RFC](https://github.com/graphql/graphql-spec/pull/825) for its addition to the GraphQL specification.
-
 ### [Reduce generated schema types](https://github.com/apollographql/apollo-ios/milestone/71)
 
-_Status: Not started_
+_Status: API Design in progress_
 
 - Right now we are naively generating schema types that we don't always need. A smarter algorithm can reduce generated code for certain large schemas that are currently having every type in their schema generated
 - Create configuration for manually indicating schema types you would like to have schema types and TestMocks generated for
+
+### [Support codegen of operations without response models](https://github.com/apollographql/apollo-ios/issues/3165)
+
+_Status: API Design in progress_
+
+- Support generating models that expose only the minimal necessary data for operation execution (networking and caching).
+- This would remove the generated response models, exposing response data as a simple `JSONObject` (ie. [String: AnyHashable]).
+- This feature is useful for projects that want to use their own custom data models or have binary size constraints.
 
 ### [Mutable generated reponse models](https://github.com/apollographql/apollo-ios/issues/3246)
 
@@ -68,21 +61,6 @@ _Status: Not started_
 
 - Provide a mechanism for making generated reponse models mutable.
 - This will allow mutability on an opt-in basis per selection set or definition.
-
-### [Support codegen of operations without response models](https://github.com/apollographql/apollo-ios/issues/3165)
-
-_Status: Not started_
-
-- Support generating models that expose only the minimal necessary data for operation execution (networking and caching).
-- This would remove the generated response models, exposing response data as a simple `JSONObject` (ie. [String: AnyHashable]).
-- This feature is useful for projects that want to use their own custom data models or have binary size constraints.
-
-### Declarative caching
-
-_Status: Not started_
-
-- Similar to Apollo Kotlin [declarative caching](https://www.apollographql.com/docs/kotlin/caching/declarative-ids) via the `@typePolicy` directive
-- Provide ability to configure cache keys using directives on schema types as an alternative to programmatic cache key configuration
 
 ### Semantic Nullability
 

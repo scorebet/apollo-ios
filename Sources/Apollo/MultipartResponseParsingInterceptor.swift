@@ -182,4 +182,20 @@ extension String {
 
     return nil
   }
+
+  func parseContentTypeDirectives() -> [String]? {
+    var lowercasedContentTypeHeader: StaticString { "content-type:" }
+
+    guard lowercased().starts(with: lowercasedContentTypeHeader.description) else {
+      return nil
+    }
+
+    return dropFirst(lowercasedContentTypeHeader.description.count)
+      .components(separatedBy: ";")
+      .map({ $0.trimmingCharacters(in: .whitespaces) })
+  }
+
+  var isValidGraphQLContentType: Bool {
+    self == "application/json" || self == "application/graphql-response+json"
+  }
 }

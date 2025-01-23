@@ -1,5 +1,24 @@
 # Change Log
 
+## v1.16.1
+### Fixed
+- **Web socket data race crash fixed ([#578](https://github.com/apollographql/apollo-ios-dev/pull/578)):** A data race in the web socket layer was causing crashes in some rare circumstances.
+
+- **Added support for GraphQL over HTTP media type([#558](https://github.com/apollographql/apollo-ios-dev/pull/558)):** Apollo iOS now supports the `content-type` header with a type of `application/graphql-response+json`.
+
+## v1.16.0
+
+### New
+- **Added codegen config support for spm module type versions ([#539](https://github.com/apollographql/apollo-ios-dev/pull/539)):** There is a [new codegen config option](https://www.apollographql.com/docs/ios/code-generation/codegen-configuration#swift-package) for supplying a version to the SPM module type to allow for pointing to specific branches or local versions of Apollo iOS.
+- **`@oneOf` input object support ([#537](https://github.com/apollographql/apollo-ios-dev/pull/537)):** Adding support for `@OneOf` Input Objects, more info can be found in the official [RFC](https://github.com/graphql/graphql-spec/pull/825).
+
+### Improvements
+- **`URLRequest` cache policy default changed ([#550](https://github.com/apollographql/apollo-ios-dev/pull/550)):** The updated default closer matches the original behaviour before the introduction of setting `URLRequest.CachePolicy`. _Thank you to [@marksvend](https://github.com/marksvend) for raising the issue._
+
+### Fixed
+- **`DataDict` initialization of `deferredFragments` property ([#557](https://github.com/apollographql/apollo-ios-dev/pull/557)):** Generated selection set initializers were not correctly setting deferred fragment identifiers. This only affected selection sets that were instantiated with the generated selection set initializers, response-based results are unaffected.
+- **Multipart chunk content type ([#572](https://github.com/apollographql/apollo-ios-dev/pull/572)):** Multipart response parsing would produce an error when the chunk content type contained more than one directive. _Thank you to [@brettephillips](https://github.com/brettephillips) for raising the issue._
+
 ## v1.15.3
 
 ### Improvements

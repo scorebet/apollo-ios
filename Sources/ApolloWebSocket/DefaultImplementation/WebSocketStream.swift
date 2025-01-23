@@ -46,119 +46,122 @@ class FoundationStream : NSObject, WebSocketStream, StreamDelegate, SOCKSProxyab
   private let workQueue = DispatchQueue(label: "com.apollographql.websocket", attributes: [])
   private var inputStream: InputStream?
   private var outputStream: OutputStream?
+  private let serialQueue = DispatchQueue(label: "com.apollographql.WebSocketStream.serial", qos: .background)
   weak var delegate: (any WebSocketStreamDelegate)?
   let BUFFER_MAX = 4096
 
   var enableSOCKSProxy = false
 
   func connect(url: URL, port: Int, timeout: TimeInterval, ssl: SSLSettings, completion: @escaping (((any Error)?) -> Void)) {
-    var readStream: Unmanaged<CFReadStream>?
-    var writeStream: Unmanaged<CFWriteStream>?
-    let h = url.host! as NSString
-    CFStreamCreatePairWithSocketToHost(nil, h, UInt32(port), &readStream, &writeStream)
-    inputStream = readStream!.takeRetainedValue()
-    outputStream = writeStream!.takeRetainedValue()
+    serialQueue.sync {
+      var readStream: Unmanaged<CFReadStream>?
+      var writeStream: Unmanaged<CFWriteStream>?
+      let h = url.host! as NSString
+      CFStreamCreatePairWithSocketToHost(nil, h, UInt32(port), &readStream, &writeStream)
+      inputStream = readStream!.takeRetainedValue()
+      outputStream = writeStream!.takeRetainedValue()
 
-    #if os(watchOS) //watchOS us unfortunately is missing the kCFStream properties to make this work
-    #else
-    if enableSOCKSProxy {
-      let proxyDict = CFNetworkCopySystemProxySettings()
-      let socksConfig = CFDictionaryCreateMutableCopy(nil, 0, proxyDict!.takeRetainedValue())
-      let propertyKey = CFStreamPropertyKey(rawValue: kCFStreamPropertySOCKSProxy)
-      let dict = socksConfig as? [String: Any]
-      if let ip = dict?["HTTPSProxy"]  as? String, let port = dict?["HTTPSPort"] as? Int {
-        let customSocksConfig = ["SOCKSProxy": ip, "SOCKSPort": port + 1, "SOCKSEnable": 1] as CFDictionary?
-        CFWriteStreamSetProperty(outputStream, propertyKey, customSocksConfig)
-        CFReadStreamSetProperty(inputStream, propertyKey, customSocksConfig)
-      }
-    }
-    #endif
-
-    guard let inStream = inputStream, let outStream = outputStream else { return }
-    inStream.delegate = self
-    outStream.delegate = self
-    if ssl.useSSL {
-      inStream.setProperty(StreamSocketSecurityLevel.negotiatedSSL as AnyObject, forKey: Stream.PropertyKey.socketSecurityLevelKey)
-      outStream.setProperty(StreamSocketSecurityLevel.negotiatedSSL as AnyObject, forKey: Stream.PropertyKey.socketSecurityLevelKey)
       #if os(watchOS) //watchOS us unfortunately is missing the kCFStream properties to make this work
       #else
-      var settings = [NSObject: NSObject]()
-      if ssl.disableCertValidation {
-        settings[kCFStreamSSLValidatesCertificateChain] = NSNumber(value: false)
-      }
-      if ssl.overrideTrustHostname {
-        if let hostname = ssl.desiredTrustHostname {
-          settings[kCFStreamSSLPeerName] = hostname as NSString
-        } else {
-          settings[kCFStreamSSLPeerName] = kCFNull
+      if enableSOCKSProxy {
+        let proxyDict = CFNetworkCopySystemProxySettings()
+        let socksConfig = CFDictionaryCreateMutableCopy(nil, 0, proxyDict!.takeRetainedValue())
+        let propertyKey = CFStreamPropertyKey(rawValue: kCFStreamPropertySOCKSProxy)
+        let dict = socksConfig as? [String: Any]
+        if let ip = dict?["HTTPSProxy"]  as? String, let port = dict?["HTTPSPort"] as? Int {
+          let customSocksConfig = ["SOCKSProxy": ip, "SOCKSPort": port + 1, "SOCKSEnable": 1] as CFDictionary?
+          CFWriteStreamSetProperty(outputStream, propertyKey, customSocksConfig)
+          CFReadStreamSetProperty(inputStream, propertyKey, customSocksConfig)
         }
       }
-      if let sslClientCertificate = ssl.sslClientCertificate {
-        settings[kCFStreamSSLCertificates] = sslClientCertificate.streamSSLCertificates
-      }
-
-      inStream.setProperty(settings, forKey: kCFStreamPropertySSLSettings as Stream.PropertyKey)
-      outStream.setProperty(settings, forKey: kCFStreamPropertySSLSettings as Stream.PropertyKey)
       #endif
 
-      #if os(Linux)
-      #else
-      if let cipherSuites = ssl.cipherSuites {
+      guard let inStream = inputStream, let outStream = outputStream else { return }
+      inStream.delegate = self
+      outStream.delegate = self
+      if ssl.useSSL {
+        inStream.setProperty(StreamSocketSecurityLevel.negotiatedSSL as AnyObject, forKey: Stream.PropertyKey.socketSecurityLevelKey)
+        outStream.setProperty(StreamSocketSecurityLevel.negotiatedSSL as AnyObject, forKey: Stream.PropertyKey.socketSecurityLevelKey)
         #if os(watchOS) //watchOS us unfortunately is missing the kCFStream properties to make this work
         #else
-        if let sslContextIn = CFReadStreamCopyProperty(inputStream, CFStreamPropertyKey(rawValue: kCFStreamPropertySSLContext)) as! SSLContext?,
-           let sslContextOut = CFWriteStreamCopyProperty(outputStream, CFStreamPropertyKey(rawValue: kCFStreamPropertySSLContext)) as! SSLContext? {
-          let resIn = SSLSetEnabledCiphers(sslContextIn, cipherSuites, cipherSuites.count)
-          let resOut = SSLSetEnabledCiphers(sslContextOut, cipherSuites, cipherSuites.count)
-          if resIn != errSecSuccess {
-            completion(WebSocket.WSError(
-                        type: .invalidSSLError,
-                        message: "Error setting ingoing cypher suites",
-                        code: Int(resIn)))
+        var settings = [NSObject: NSObject]()
+        if ssl.disableCertValidation {
+          settings[kCFStreamSSLValidatesCertificateChain] = NSNumber(value: false)
+        }
+        if ssl.overrideTrustHostname {
+          if let hostname = ssl.desiredTrustHostname {
+            settings[kCFStreamSSLPeerName] = hostname as NSString
+          } else {
+            settings[kCFStreamSSLPeerName] = kCFNull
           }
-          if resOut != errSecSuccess {
-            completion(WebSocket.WSError(
-                        type: .invalidSSLError,
-                        message: "Error setting outgoing cypher suites",
-                        code: Int(resOut)))
+        }
+        if let sslClientCertificate = ssl.sslClientCertificate {
+          settings[kCFStreamSSLCertificates] = sslClientCertificate.streamSSLCertificates
+        }
+
+        inStream.setProperty(settings, forKey: kCFStreamPropertySSLSettings as Stream.PropertyKey)
+        outStream.setProperty(settings, forKey: kCFStreamPropertySSLSettings as Stream.PropertyKey)
+        #endif
+
+        #if os(Linux)
+        #else
+        if let cipherSuites = ssl.cipherSuites {
+          #if os(watchOS) //watchOS us unfortunately is missing the kCFStream properties to make this work
+          #else
+          if let sslContextIn = CFReadStreamCopyProperty(inputStream, CFStreamPropertyKey(rawValue: kCFStreamPropertySSLContext)) as! SSLContext?,
+             let sslContextOut = CFWriteStreamCopyProperty(outputStream, CFStreamPropertyKey(rawValue: kCFStreamPropertySSLContext)) as! SSLContext? {
+            let resIn = SSLSetEnabledCiphers(sslContextIn, cipherSuites, cipherSuites.count)
+            let resOut = SSLSetEnabledCiphers(sslContextOut, cipherSuites, cipherSuites.count)
+            if resIn != errSecSuccess {
+              completion(WebSocket.WSError(
+                          type: .invalidSSLError,
+                          message: "Error setting ingoing cypher suites",
+                          code: Int(resIn)))
+            }
+            if resOut != errSecSuccess {
+              completion(WebSocket.WSError(
+                          type: .invalidSSLError,
+                          message: "Error setting outgoing cypher suites",
+                          code: Int(resOut)))
+            }
           }
+          #endif
         }
         #endif
       }
-      #endif
-    }
 
-    CFReadStreamSetDispatchQueue(inStream, workQueue)
-    CFWriteStreamSetDispatchQueue(outStream, workQueue)
-    inStream.open()
-    outStream.open()
+      CFReadStreamSetDispatchQueue(inStream, workQueue)
+      CFWriteStreamSetDispatchQueue(outStream, workQueue)
+      inStream.open()
+      outStream.open()
 
-    var out = timeout// wait X seconds before giving up
-    workQueue.async { [weak self] in
-      while !outStream.hasSpaceAvailable {
-        usleep(100) // wait until the socket is ready
-        out -= 100
-        if out < 0 {
-          completion(
-            WebSocket.WSError(
-              type: .writeTimeoutError,
-              message: "Timed out waiting for the socket to be ready for a write",
-              code: 0))
-          return
+      var out = timeout// wait X seconds before giving up
+      workQueue.async { [weak self] in
+        while !outStream.hasSpaceAvailable {
+          usleep(100) // wait until the socket is ready
+          out -= 100
+          if out < 0 {
+            completion(
+              WebSocket.WSError(
+                type: .writeTimeoutError,
+                message: "Timed out waiting for the socket to be ready for a write",
+                code: 0))
+            return
 
-        } else if let error = outStream.streamError {
-          completion(error)
-          return // disconnectStream will be called.
+          } else if let error = outStream.streamError {
+            completion(error)
+            return // disconnectStream will be called.
 
-        } else if self == nil {
-          completion(WebSocket.WSError(
-                      type: .closeError,
-                      message: "socket object has been dereferenced",
-                      code: 0))
-          return
+          } else if self == nil {
+            completion(WebSocket.WSError(
+                        type: .closeError,
+                        message: "socket object has been dereferenced",
+                        code: 0))
+            return
+          }
         }
+        completion(nil) //success!
       }
-      completion(nil) //success!
     }
   }
 
@@ -180,18 +183,20 @@ class FoundationStream : NSObject, WebSocketStream, StreamDelegate, SOCKSProxyab
   }
 
   func cleanup() {
-    if let stream = inputStream {
-      stream.delegate = nil
-      CFReadStreamSetDispatchQueue(stream, nil)
-      stream.close()
+    serialQueue.sync {
+      if let stream = inputStream {
+        stream.delegate = nil
+        CFReadStreamSetDispatchQueue(stream, nil)
+        stream.close()
+      }
+      if let stream = outputStream {
+        stream.delegate = nil
+        CFWriteStreamSetDispatchQueue(stream, nil)
+        stream.close()
+      }
+      outputStream = nil
+      inputStream = nil
     }
-    if let stream = outputStream {
-      stream.delegate = nil
-      CFWriteStreamSetDispatchQueue(stream, nil)
-      stream.close()
-    }
-    outputStream = nil
-    inputStream = nil
   }
 
   #if os(Linux) || os(watchOS)
